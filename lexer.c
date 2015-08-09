@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -180,11 +181,158 @@ static const struct rule grammar[] = {
 #undef t
 #undef no
 
-void evaluate(struct stree_node *top)
+static void nt_unit_run(struct stree_node *);
+static void nt_stmt_run(struct stree_node *);
+static void nt_prnt_run(struct stree_node *);
+static void nt_ctrl_run(struct stree_node *);
+static void nt_cond_run(struct stree_node *);
+static void nt_loop_run(struct stree_node *);
+
+static int nt_atom_eval(struct stree_node *);
+static int nt_expr_eval(struct stree_node *);
+static int nt_pexp_eval(struct stree_node *);
+static int nt_bexp_eval(struct stree_node *);
+
+static void nt_unit_run(struct stree_node *unit)
 {
+    for (size_t stmt_idx = 1; stmt_idx < unit->num_children - 1; ++stmt_idx) {
+        nt_stmt_run(unit->children[stmt_idx]);
+    }
 }
 
-static inline int term_equals_node(const struct term *term, const struct stree_node *node)
+static void nt_stmt_run(struct stree_node *stmt)
+{
+    switch (stmt->children[0]->nt) {
+    case NT_Ctrl:
+        nt_ctrl_run(stmt->children[0]);
+        break;
+
+    case NT_Prnt:
+        nt_prnt_run(stmt->children[0]);
+        break;
+
+    case NT_Expr:
+        nt_expr_eval(stmt->children[0]);
+        break;
+
+    default:
+        break;
+    }
+}
+
+static void nt_prnt_run(struct stree_node *prnt)
+{
+    printf("print %d\n", nt_expr_eval(prnt->children[1]));
+}
+
+static void nt_ctrl_run(struct stree_node *ctrl)
+{
+    switch (ctrl->children[0]->nt) {
+    case NT_Cond:
+        nt_cond_run(ctrl->children[0]);
+        break;
+
+    case NT_Loop:
+        nt_loop_run(ctrl->children[0]);
+        break;
+
+    default:
+        break;
+    }
+}
+
+static void nt_cond_run(struct stree_node *cond)
+{
+    if (nt_expr_eval(cond->children[1])) {
+        struct stree_node *stmt = cond->children[3];
+
+        while (stmt->num_children) {
+            nt_stmt_run(stmt++);
+        }
+    }
+}
+
+static void nt_loop_run(struct stree_node *loop)
+{
+    while (nt_expr_eval(loop->children[1])) {
+        struct stree_node *stmt = loop->children[3];
+
+        while (stmt->num_children) {
+            nt_stmt_run(stmt++);
+        }
+    }
+}
+
+static int nt_atom_eval(struct stree_node *atom)
+{
+    switch (atom->children[0]->tm->token) {
+    case TK_NAME:
+        return 0;
+
+    case TK_NMBR: {
+        const uint8_t *beg = atom->children[0]->tm->beg;
+        const uint8_t *end = atom->children[0]->tm->end;
+        int result = 0, mult = 1;
+
+        for (ssize_t len = end - beg, idx = len - 1; idx >= 0; --idx, mult *= 10) {
+            result += mult * (beg[idx] - '0');
+        }
+
+        return result;
+    }
+
+    default:
+        return 0;
+    }
+}
+
+static int nt_pexp_eval(struct stree_node *pexp)
+{
+    return nt_expr_eval(pexp->children[1]);
+}
+
+static int nt_bexp_eval(struct stree_node *bexp)
+{
+    switch (bexp->children[1]->tm->token) {
+    case TK_ASSN:
+        return 0;
+
+    case TK_PLUS:
+        return nt_expr_eval(bexp->children[0]) + nt_expr_eval(bexp->children[2]);
+
+    case TK_MINS:
+        return nt_expr_eval(bexp->children[0]) - nt_expr_eval(bexp->children[2]);
+
+    case TK_EQUL:
+        return nt_expr_eval(bexp->children[0]) == nt_expr_eval(bexp->children[2]);
+
+    case TK_NEQL:
+        return nt_expr_eval(bexp->children[0]) != nt_expr_eval(bexp->children[2]);
+
+    default:
+        return 0;
+    }
+}
+
+static int nt_expr_eval(struct stree_node *expr)
+{
+    switch (expr->children[0]->nt) {
+    case NT_Atom:
+        return nt_atom_eval(expr->children[0]);
+
+    case NT_Bexp:
+        return nt_bexp_eval(expr->children[0]);
+
+    case NT_Pexp:
+        return nt_pexp_eval(expr->children[0]);
+
+    default:
+        return 0;
+    }
+}
+
+static inline int
+term_equals_node(const struct term *term, const struct stree_node *node)
 {
     int node_is_leaf = node->num_children == 0;
 
@@ -199,7 +347,8 @@ static inline int term_equals_node(const struct term *term, const struct stree_n
     return 0;
 }
 
-static void print_stack(const struct stree_node *stack, size_t size)
+static void
+print_stack(const struct stree_node *stack, size_t size)
 {
     for (size_t i = 0; i < size; ++i) {
         if (stack[i].num_children == 0) {
@@ -208,7 +357,8 @@ static void print_stack(const struct stree_node *stack, size_t size)
             } else if (stack[i].tm->token == TK_FEND) {
                 printf("\033[1;32m$\033[0m ");
             } else {
-                printf("\033[1;32m%.*s\033[0m ", (int)(stack[i].tm->end - stack[i].tm->beg), stack[i].tm->beg);
+                ptrdiff_t len = stack[i].tm->end - stack[i].tm->beg;
+                printf("\033[1;32m%.*s\033[0m ", (int) len, stack[i].tm->beg);
             }
         } else {
             printf("\033[1;33mNT_%s\033[0m ", nts[stack[i].nt]);
@@ -218,7 +368,8 @@ static void print_stack(const struct stree_node *stack, size_t size)
     printf("\n");
 }
 
-struct stree_node *parse(const struct token_range *ranges, size_t nranges)
+struct stree_node
+parse(const struct token_range *ranges, size_t nranges)
 {
     #define STACK_MAX_DEPTH 256
     ssize_t st_size = 0;
@@ -249,7 +400,8 @@ struct stree_node *parse(const struct token_range *ranges, size_t nranges)
             rule != grammar + sizeof(grammar) / sizeof(*grammar); 
             ++rule) {
 
-            const struct term *prev_term = NULL, *term = &rule->rhs[RULE_RHS_LAST];
+            const struct term *prev_term = NULL;
+            const struct term *term = &rule->rhs[RULE_RHS_LAST];
             ssize_t st_idx = st_size - 1;
 
             do {
@@ -267,13 +419,19 @@ struct stree_node *parse(const struct token_range *ranges, size_t nranges)
                 }
             } while (st_idx >= 0 && !(term->is_terminal && term->tm == TK_COUNT));
 
-            if (term && term->is_terminal && term->tm == TK_COUNT && st_idx != st_size - 1) {
-                size_t reduction_size = st_size - st_idx - 1;
+            int reached_eor = term && term->is_terminal && term->tm == TK_COUNT;
+            size_t reduction_size = st_size - st_idx - 1;
+
+            if (reached_eor && reduction_size) {
                 size_t reduction_idx = ++st_idx;
 
-                struct stree_node *child_nodes = malloc(reduction_size * sizeof(struct stree_node));
+                struct stree_node *child_nodes = malloc(
+                    reduction_size * sizeof(struct stree_node));
+                
                 struct stree_node **old_children = stack[reduction_idx].children;
-                stack[reduction_idx].children = malloc(reduction_size * sizeof(struct stree_node *));
+                
+                stack[reduction_idx].children = malloc(
+                    reduction_size * sizeof(struct stree_node *));
 
                 for (size_t node_idx = 0; st_idx < st_size; ++st_idx, ++node_idx) {
                     child_nodes[node_idx] = stack[st_idx];
@@ -293,10 +451,22 @@ struct stree_node *parse(const struct token_range *ranges, size_t nranges)
         }
     }
 
-    printf("\033[1;%sm%s\033[0m ", st_size == 1 ? "32" : "31", st_size == 1 ? "ACCEPT" : "REJECT");
+    printf("\033[1;%sm%s\033[0m ", 
+        st_size == 1 ? "32" : "31", 
+        st_size == 1 ? "ACCEPT" : "REJECT");
+
     print_stack(stack, st_size);
 
-    return st_size == 1 ? stack : NULL;
+    if (st_size == 1) {
+        return stack[0];
+    } else {
+        static const struct token_range tm = { .token = TK_COUNT };
+
+        return stack[0] = (struct stree_node) {
+            .num_children = 0,
+            .tm = &tm,
+        };
+    }
 
     #undef STACK_MAX_DEPTH
 }
@@ -428,7 +598,7 @@ TOKEN_DEFINE_1(tk_minus,  "-");
 TOKEN_DEFINE_5(tk_print,  "print");
 TOKEN_DEFINE_1(tk_scolon, ";");
 
-static sts_t (*tokens[TK_COUNT])(uint8_t) = {
+static sts_t (* const tokens[TK_COUNT])(uint8_t) = {
     tk_name,
     tk_number,
     tk_wspace,
@@ -580,24 +750,23 @@ int main (int argc, char **argv)
             alternate++;
         }
 
-        int length = range.end - range.beg;
+        ptrdiff_t length = range.end - range.beg;
 
         if (i == nranges - 1 && lexresult) {
-            printf("\033[1;31m%.*s\033[0m\033[1;36m < Unknown token\033[0m\n", length ?: 1, range.beg);
+            printf("\033[1;31m%.*s\033[0m\033[1;36m < Unknown token\033[0m\n",
+                length ? (int) length : 1, range.beg);
         } else {
-            if (alternate % 2) {
-                printf("\033[1;33m%.*s\033[0m", length, range.beg);
-            } else {
-                printf("\033[1;32m%.*s\033[0m", length, range.beg);
-            }
+            printf("\033[1;%sm%.*s\033[0m", 
+                alternate % 2 ? "33" : "32", (int) length, range.beg);
         }
     }
 
     printf("\n");
     printf("\033[1;37m*** Parsing ***\033[0m\n");
-    struct stree_node *stree = parse(ranges, nranges);
+    struct stree_node root = parse(ranges, nranges);
 
-    if (stree) {
+    if (root.num_children && root.nt == NT_Unit) {
+        nt_unit_run(&root);
     }
 
     return 0;
