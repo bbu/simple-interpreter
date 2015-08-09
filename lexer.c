@@ -180,6 +180,10 @@ static const struct rule grammar[] = {
 #undef t
 #undef no
 
+void evaluate(struct stree_node *top)
+{
+}
+
 static inline int term_equals_node(const struct term *term, const struct stree_node *node)
 {
     int node_is_leaf = node->num_children == 0;
@@ -195,7 +199,7 @@ static inline int term_equals_node(const struct term *term, const struct stree_n
     return 0;
 }
 
-void print_stack(const struct stree_node *stack, size_t size)
+static void print_stack(const struct stree_node *stack, size_t size)
 {
     for (size_t i = 0; i < size; ++i) {
         if (stack[i].num_children == 0) {
@@ -214,19 +218,30 @@ void print_stack(const struct stree_node *stack, size_t size)
     printf("\n");
 }
 
-void parse(const struct token_range *ranges, size_t nranges)
+struct stree_node *parse(const struct token_range *ranges, size_t nranges)
 {
-    static ssize_t st_size = 0;
-    struct stree_node stack[200];
+    #define STACK_MAX_DEPTH 256
+    ssize_t st_size = 0;
+    static struct stree_node stack[STACK_MAX_DEPTH];
 
     for (size_t range_idx = 0; range_idx < nranges; ++range_idx) {
         if (ranges[range_idx].token == TK_WSPC) {
             continue;
         }
 
-        stack[st_size].num_children = 0;
-        stack[st_size].tm = &ranges[range_idx];
-        stack[st_size++].children = NULL;
+        if (st_size > STACK_MAX_DEPTH - 1) {
+            printf("\033[1;31mStack depth exceeded!\033[0m\n");
+            break;
+        }
+
+        stack[st_size++] = (struct stree_node) {
+            .num_children = 0,
+            .tm = &ranges[range_idx],
+            .children = NULL
+        };
+
+        printf("\033[1;36mShift:\033[0m ");
+        print_stack(stack, st_size);
         
         try_reduce_again:
 
@@ -256,8 +271,6 @@ void parse(const struct token_range *ranges, size_t nranges)
                 size_t reduction_size = st_size - st_idx - 1;
                 size_t reduction_idx = ++st_idx;
 
-                //printf("Rule %td match, size: %ld, idx: %ld, size: %lu\n", rule - grammar + 1, st_size, st_idx, reduction_size);
-
                 struct stree_node *child_nodes = malloc(reduction_size * sizeof(struct stree_node));
                 struct stree_node **old_children = stack[reduction_idx].children;
                 stack[reduction_idx].children = malloc(reduction_size * sizeof(struct stree_node *));
@@ -271,13 +284,21 @@ void parse(const struct token_range *ranges, size_t nranges)
                 stack[reduction_idx].num_children = reduction_size;
                 stack[reduction_idx].nt = rule->lhs;
                 st_size = reduction_idx + 1;
+
+                printf("\033[1;34mRed%02td:\033[0m ", rule - grammar + 1);
                 print_stack(stack, st_size);
+
                 goto try_reduce_again;
             }
         }
     }
 
+    printf("\033[1;%sm%s\033[0m ", st_size == 1 ? "32" : "31", st_size == 1 ? "ACCEPT" : "REJECT");
     print_stack(stack, st_size);
+
+    return st_size == 1 ? stack : NULL;
+
+    #undef STACK_MAX_DEPTH
 }
 
 #define TOKEN_DEFINE_1(token, str) \
@@ -350,7 +371,7 @@ static sts_t token(uint8_t c) \
     } \
 }
 
-sts_t tk_name(uint8_t c)
+static sts_t tk_name(uint8_t c)
 {
     static enum {
         tk_name_begin,
@@ -369,12 +390,12 @@ sts_t tk_name(uint8_t c)
     return 0;
 }
 
-sts_t tk_number(uint8_t c)
+static sts_t tk_number(uint8_t c)
 {
     return IS_DIGIT(c) ? STS_ACCEPT : STS_REJECT;
 }
 
-sts_t tk_wspace(uint8_t c)
+static sts_t tk_wspace(uint8_t c)
 {
     static enum {
         tk_wspace_begin,
@@ -546,7 +567,7 @@ int main (int argc, char **argv)
     }
 
     int lexresult = lex(mapped, ranges, &nranges);
-    printf("Lexing %s:\n", lexresult ? "failed" : "successful");
+    printf("\033[1;37m*** Lexing ***\033[0m\n");
 
     for (size_t i = 0, alternate = 0; i < nranges; ++i) {
         struct token_range range = ranges[i];
@@ -562,7 +583,7 @@ int main (int argc, char **argv)
         int length = range.end - range.beg;
 
         if (i == nranges - 1 && lexresult) {
-            printf("\033[1;31m%.*s\033[0m\033[1;36m < Unknown token\033[0m", length ?: 1, range.beg);
+            printf("\033[1;31m%.*s\033[0m\033[1;36m < Unknown token\033[0m\n", length ?: 1, range.beg);
         } else {
             if (alternate % 2) {
                 printf("\033[1;33m%.*s\033[0m", length, range.beg);
@@ -573,8 +594,11 @@ int main (int argc, char **argv)
     }
 
     printf("\n");
+    printf("\033[1;37m*** Parsing ***\033[0m\n");
+    struct stree_node *stree = parse(ranges, nranges);
 
-    parse(ranges, nranges);
+    if (stree) {
+    }
 
     return 0;
 }
