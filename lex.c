@@ -151,35 +151,35 @@ TOKEN_DEFINE_4(tk_read, "read");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
 
+static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
+    tk_name,
+    tk_nmbr,
+    tk_wspc,
+    tk_lpar,
+    tk_rpar,
+    tk_lbrc,
+    tk_rbrc,
+    tk_cond,
+    tk_loop,
+    tk_assn,
+    tk_equl,
+    tk_neql,
+    tk_lthn,
+    tk_gthn,
+    tk_lteq,
+    tk_gteq,
+    tk_conj,
+    tk_disj,
+    tk_plus,
+    tk_mins,
+    tk_nega,
+    tk_read,
+    tk_prnt,
+    tk_scol,
+};
+
 int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
 {
-    static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
-        tk_name,
-        tk_nmbr,
-        tk_wspc,
-        tk_lpar,
-        tk_rpar,
-        tk_lbrc,
-        tk_rbrc,
-        tk_cond,
-        tk_loop,
-        tk_assn,
-        tk_equl,
-        tk_neql,
-        tk_lthn,
-        tk_gthn,
-        tk_lteq,
-        tk_gteq,
-        tk_conj,
-        tk_disj,
-        tk_plus,
-        tk_mins,
-        tk_nega,
-        tk_read,
-        tk_prnt,
-        tk_scol,
-    };
-
     static struct {
         sts_t prev, curr;
     } statuses[TK_COUNT] = {
