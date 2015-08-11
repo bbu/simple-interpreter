@@ -4,6 +4,8 @@
 #include "parse.h"
 
 static void run_stmt(const struct node *);
+static void run_assn(const struct node *);
+static void run_read(const struct node *);
 static void run_prnt(const struct node *);
 static void run_ctrl(const struct node *);
 static void run_cond(const struct node *);
@@ -23,16 +25,20 @@ void run(const struct node *unit)
 static void run_stmt(const struct node *stmt)
 {
     switch (stmt->children[0]->nt) {
-    case NT_Ctrl:
-        run_ctrl(stmt->children[0]);
+    case NT_Assn:
+        run_assn(stmt->children[0]);
+        break;
+
+    case NT_Read:
+        run_read(stmt->children[0]);
         break;
 
     case NT_Prnt:
         run_prnt(stmt->children[0]);
         break;
 
-    case NT_Expr:
-        eval_expr(stmt->children[0]);
+    case NT_Ctrl:
+        run_ctrl(stmt->children[0]);
         break;
 
     default:
@@ -40,9 +46,22 @@ static void run_stmt(const struct node *stmt)
     }
 }
 
+static void run_assn(const struct node *assn)
+{
+    printf("assign\n");
+}
+
+static void run_read(const struct node *read)
+{
+    int input;
+
+    printf("read: ");
+    scanf("%d", &input);
+}
+
 static void run_prnt(const struct node *prnt)
 {
-    printf("print %d\n", eval_expr(prnt->children[1]));
+    printf("print: %d\n", eval_expr(prnt->children[1]));
 }
 
 static void run_ctrl(const struct node *ctrl)
@@ -131,9 +150,6 @@ static int eval_pexp(const struct node *pexp)
 static int eval_bexp(const struct node *bexp)
 {
     switch (bexp->children[1]->token->tk) {
-    case TK_ASSN:
-        return 0;
-
     case TK_PLUS:
         return eval_expr(bexp->children[0]) + eval_expr(bexp->children[2]);
 

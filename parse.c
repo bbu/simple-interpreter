@@ -57,21 +57,33 @@ struct rule {
 
 static const struct rule grammar[] = {
     r3(Unit, t(FBEG), m(Stmt), t(FEND)                   )
+
+    r1(Stmt, n(Assn)                                     )
+    r1(Stmt, n(Read)                                     )
+    r1(Stmt, n(Prnt)                                     )
     r1(Stmt, n(Ctrl)                                     )
-    r2(Stmt, n(Prnt), t(SCOL)                            )
-    r2(Stmt, n(Expr), t(SCOL)                            )
-    r2(Prnt, t(PRNT), n(Expr)                            )
+
+    r4(Assn, n(Expr), t(ASSN), n(Expr), t(SCOL)          )
+
+    r3(Read, t(READ), n(Expr), t(SCOL)                   )
+
+    r3(Prnt, t(PRNT), n(Expr), t(SCOL)                   )
+
     r1(Ctrl, n(Cond)                                     )
     r1(Ctrl, n(Loop)                                     )
+
     r5(Cond, t(COND), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
     r5(Loop, t(WHIL), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
+
     r1(Atom, t(NAME)                                     )
     r1(Atom, t(NMBR)                                     )
+
     r1(Expr, n(Atom)                                     )
     r1(Expr, n(Bexp)                                     )
     r1(Expr, n(Pexp)                                     )
+
     r3(Pexp, t(LPAR), n(Expr), t(RPAR)                   )
-    r3(Bexp, n(Expr), t(ASSN), n(Expr)                   )
+
     r3(Bexp, n(Expr), t(PLUS), n(Expr)                   )
     r3(Bexp, n(Expr), t(MINS), n(Expr)                   )
     r3(Bexp, n(Expr), t(EQUL), n(Expr)                   )
@@ -97,6 +109,8 @@ static void print_stack(void)
     static const char *nts[NT_COUNT] = {
         "Unit",
         "Stmt",
+        "Assn",
+        "Read",
         "Prnt",
         "Ctrl",
         "Cond",

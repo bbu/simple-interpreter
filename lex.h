@@ -18,6 +18,7 @@ enum {
     TK_NEQL,
     TK_PLUS,
     TK_MINS,
+    TK_READ,
     TK_PRNT,
     TK_SCOL,
     TK_COUNT,

@@ -140,6 +140,7 @@ TOKEN_DEFINE_2(tk_equl, "==");
 TOKEN_DEFINE_2(tk_neql, "!=");
 TOKEN_DEFINE_1(tk_plus, "+");
 TOKEN_DEFINE_1(tk_mins, "-");
+TOKEN_DEFINE_4(tk_read, "read");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
 
@@ -160,6 +161,7 @@ int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
         tk_neql,
         tk_plus,
         tk_mins,
+        tk_read,
         tk_prnt,
         tk_scol,
     };
