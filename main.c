@@ -71,7 +71,7 @@ int main(int argc, char **argv)
     puts(WHITE("\n*** Parsing ***"));
     struct node root = parse(ranges, nranges);
 
-    if (root.nchildren && root.nt == NT_Unit) {
+    if (parse_success(root)) {
         puts(WHITE("\n*** Running ***"));
         run(&root);
     }

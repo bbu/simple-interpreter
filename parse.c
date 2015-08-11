@@ -228,19 +228,15 @@ static int reduce(const struct rule *rule, const size_t at, const size_t size)
 
 struct node parse(const struct token *ranges, const size_t nranges)
 {
-    static const struct token reject = {
-        .tk = TK_COUNT
-    }, nomem = {
-        .tk = TK_COUNT + 1
-    };
+    static const struct token 
+        reject       = { .tk = TK_COUNT + 0 },
+        nomem        = { .tk = TK_COUNT + 1 },
+        overflow     = { .tk = TK_COUNT + 2 };
     
-    static const struct node err_reject = {
-        .nchildren = 0,
-        .token = &reject,
-    }, err_nomem = {
-        .nchildren = 0,
-        .token = &nomem,
-    };
+    static const struct node
+        err_reject   = { .nchildren = 0, .token = &reject },
+        err_nomem    = { .nchildren = 0, .token = &nomem },
+        err_overflow = { .nchildren = 0, .token = &overflow };
 
     st_size = 0;
 
@@ -251,7 +247,7 @@ struct node parse(const struct token *ranges, const size_t nranges)
 
         if (st_size > STACK_MAX_DEPTH - 1) {
             puts(RED("Stack depth exceeded!"));
-            break;
+            return destroy_stack(), err_overflow;
         }
 
         shift(&ranges[range_idx]);
@@ -261,11 +257,11 @@ struct node parse(const struct token *ranges, const size_t nranges)
         const struct rule *rule = grammar;
 
         do {
-            size_t reduction_at;
-            size_t reduction_size = match_rule(rule, &reduction_at);
+            size_t reduction_at, reduction_size;
 
-            if (reduction_size) {
+            if ((reduction_size = match_rule(rule, &reduction_at))) {
                 if (reduce(rule, reduction_at, reduction_size)) {
+                    puts(RED("Out of memory!"));
                     return destroy_stack(), err_nomem;
                 }
 
@@ -276,8 +272,9 @@ struct node parse(const struct token *ranges, const size_t nranges)
         } while (++rule != grammar + GRAMMAR_SIZE);
     }
 
-    int accepted = st_size == 1;
+    int accepted = st_size == 1 &&
+        stack[0].nchildren && stack[0].nt == NT_Unit;
 
     printf(accepted ? GREEN("ACCEPT ") : RED("REJECT ")), print_stack();
-    return accepted ? stack[0] : err_reject;
+    return accepted ? stack[0] : (destroy_stack(), err_reject);
 }

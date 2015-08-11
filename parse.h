@@ -43,3 +43,5 @@ struct node {
 };
 
 struct node parse(const struct token *ranges, const size_t nranges);
+
+#define parse_success(root) ((root).nchildren)
