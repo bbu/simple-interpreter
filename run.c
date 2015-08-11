@@ -14,6 +14,7 @@ static int eval_atom(const struct node *);
 static int eval_expr(const struct node *);
 static int eval_pexp(const struct node *);
 static int eval_bexp(const struct node *);
+static int eval_uexp(const struct node *);
 
 void run(const struct node *unit)
 {
@@ -131,11 +132,14 @@ static int eval_expr(const struct node *expr)
     case NT_Atom:
         return eval_atom(expr->children[0]);
 
+    case NT_Pexp:
+        return eval_pexp(expr->children[0]);
+
     case NT_Bexp:
         return eval_bexp(expr->children[0]);
 
-    case NT_Pexp:
-        return eval_pexp(expr->children[0]);
+    case NT_Uexp:
+        return eval_uexp(expr->children[0]);
 
     default:
         return 0;
@@ -161,6 +165,41 @@ static int eval_bexp(const struct node *bexp)
 
     case TK_NEQL:
         return eval_expr(bexp->children[0]) != eval_expr(bexp->children[2]);
+
+    case TK_LTHN:
+        return eval_expr(bexp->children[0]) < eval_expr(bexp->children[2]);
+
+    case TK_GTHN:
+        return eval_expr(bexp->children[0]) > eval_expr(bexp->children[2]);
+
+    case TK_LTEQ:
+        return eval_expr(bexp->children[0]) <= eval_expr(bexp->children[2]);
+
+    case TK_GTEQ:
+        return eval_expr(bexp->children[0]) >= eval_expr(bexp->children[2]);
+
+    case TK_CONJ:
+        return eval_expr(bexp->children[0]) && eval_expr(bexp->children[2]);
+
+    case TK_DISJ:
+        return eval_expr(bexp->children[0]) || eval_expr(bexp->children[2]);
+
+    default:
+        return 0;
+    }
+}
+
+static int eval_uexp(const struct node *uexp)
+{
+    switch (uexp->children[0]->token->tk) {
+    case TK_PLUS:
+        return eval_expr(uexp->children[1]);
+
+    case TK_MINS:
+        return -eval_expr(uexp->children[1]);
+
+    case TK_NEGA:
+		return !eval_expr(uexp->children[1]);
 
     default:
         return 0;

@@ -79,8 +79,9 @@ static const struct rule grammar[] = {
     r1(Atom, t(NMBR)                                     )
 
     r1(Expr, n(Atom)                                     )
-    r1(Expr, n(Bexp)                                     )
     r1(Expr, n(Pexp)                                     )
+    r1(Expr, n(Bexp)                                     )
+    r1(Expr, n(Uexp)                                     )
 
     r3(Pexp, t(LPAR), n(Expr), t(RPAR)                   )
 
@@ -88,6 +89,16 @@ static const struct rule grammar[] = {
     r3(Bexp, n(Expr), t(MINS), n(Expr)                   )
     r3(Bexp, n(Expr), t(EQUL), n(Expr)                   )
     r3(Bexp, n(Expr), t(NEQL), n(Expr)                   )
+    r3(Bexp, n(Expr), t(LTHN), n(Expr)                   )
+    r3(Bexp, n(Expr), t(GTHN), n(Expr)                   )
+    r3(Bexp, n(Expr), t(LTEQ), n(Expr)                   )
+    r3(Bexp, n(Expr), t(GTEQ), n(Expr)                   )
+    r3(Bexp, n(Expr), t(CONJ), n(Expr)                   )
+    r3(Bexp, n(Expr), t(DISJ), n(Expr)                   )
+
+    r2(Uexp, t(PLUS), n(Expr)                            )
+    r2(Uexp, t(MINS), n(Expr)                            )
+    r2(Uexp, t(NEGA), n(Expr)                            )
 };
 
 #undef r1
@@ -119,6 +130,7 @@ static void print_stack(void)
         "Expr",
         "Pexp",
         "Bexp",
+        "Uexp",
     };
 
     for (size_t i = 0; i < st_size; ++i) {

@@ -24,6 +24,7 @@ enum {
     NT_Expr,
     NT_Pexp,
     NT_Bexp,
+    NT_Uexp,
     NT_COUNT
 };
 

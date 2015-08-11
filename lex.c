@@ -138,8 +138,15 @@ TOKEN_DEFINE_5(tk_loop, "while");
 TOKEN_DEFINE_1(tk_assn, "=");
 TOKEN_DEFINE_2(tk_equl, "==");
 TOKEN_DEFINE_2(tk_neql, "!=");
+TOKEN_DEFINE_1(tk_lthn, "<");
+TOKEN_DEFINE_1(tk_gthn, ">");
+TOKEN_DEFINE_2(tk_lteq, "<=");
+TOKEN_DEFINE_2(tk_gteq, ">=");
+TOKEN_DEFINE_2(tk_conj, "&&");
+TOKEN_DEFINE_2(tk_disj, "||");
 TOKEN_DEFINE_1(tk_plus, "+");
 TOKEN_DEFINE_1(tk_mins, "-");
+TOKEN_DEFINE_1(tk_nega, "!");
 TOKEN_DEFINE_4(tk_read, "read");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
@@ -159,8 +166,15 @@ int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
         tk_assn,
         tk_equl,
         tk_neql,
+        tk_lthn,
+        tk_gthn,
+        tk_lteq,
+        tk_gteq,
+        tk_conj,
+        tk_disj,
         tk_plus,
         tk_mins,
+        tk_nega,
         tk_read,
         tk_prnt,
         tk_scol,
