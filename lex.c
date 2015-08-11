@@ -1,6 +1,6 @@
 #include "lex.h"
 
-enum state_transition_status {
+enum {
     STS_ACCEPT,
     STS_REJECT,
     STS_HUNGRY,
@@ -143,9 +143,9 @@ TOKEN_DEFINE_1(tk_mins, "-");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
 
-int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
+int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
 {
-    static sts_t (* const tokens[TK_COUNT])(uint8_t) = {
+    static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
         tk_name,
         tk_nmbr,
         tk_wspc,
@@ -171,13 +171,13 @@ int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
     };
 
     const uint8_t *prefix_beg = input, *prefix_end = input;
-    token_t accepted_token;
-    ranges[*nranges = 1, 0].token = TK_FBEG;
+    tk_t accepted_token;
+    ranges[*nranges = 1, 0].tk = TK_FBEG;
 
     while (*prefix_end) {
         int did_accept = 0;
         
-        for (token_t token = 0; token < TK_COUNT; ++token) {
+        for (tk_t token = 0; token < TK_COUNT; ++token) {
             if (statuses[token].prev != STS_REJECT) {
                 statuses[token].curr = tokens[token](*prefix_end);
             }
@@ -190,7 +190,7 @@ int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
         if (!did_accept) {
             accepted_token = TK_COUNT;
 
-            for (token_t token = 0; token < TK_COUNT; ++token) {
+            for (tk_t token = 0; token < TK_COUNT; ++token) {
                 if (statuses[token].prev == STS_ACCEPT) {
                     accepted_token = token;
                 }
@@ -199,10 +199,10 @@ int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
                 statuses[token].curr = STS_REJECT;
             }
 
-            ranges[(*nranges)++] = (struct token_range) {
+            ranges[(*nranges)++] = (struct token) {
                 .beg = prefix_beg, 
                 .end = prefix_end, 
-                .token = accepted_token
+                .tk = accepted_token
             };
 
             if (accepted_token == TK_COUNT) {
@@ -213,7 +213,7 @@ int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
         } else {
             prefix_end++;
 
-            for (token_t token = 0; token < TK_COUNT; ++token) {
+            for (tk_t token = 0; token < TK_COUNT; ++token) {
                 statuses[token].prev = statuses[token].curr;
             }
         }
@@ -221,7 +221,7 @@ int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
 
     accepted_token = TK_COUNT;
 
-    for (token_t token = 0; token < TK_COUNT; ++token) {
+    for (tk_t token = 0; token < TK_COUNT; ++token) {
         if (statuses[token].curr == STS_ACCEPT) {
             accepted_token = token;
         }
@@ -230,17 +230,16 @@ int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges)
         statuses[token].curr = STS_REJECT;
     }
 
-    ranges[(*nranges)++] = (struct token_range) {
+    ranges[(*nranges)++] = (struct token) {
         .beg = prefix_beg, 
         .end = prefix_end, 
-        .token = accepted_token
+        .tk = accepted_token
     };
 
     if (accepted_token == TK_COUNT) {
         return 0;
     }
 
-    ranges[(*nranges)++].token = TK_FEND;
+    ranges[(*nranges)++].tk = TK_FEND;
     return 1;
 }
-

@@ -8,38 +8,35 @@
 #define STACK_MAX_DEPTH 256
 #define GRAMMAR_SIZE (sizeof(grammar) / sizeof(*grammar))
 
-static const char *nts[NT_COUNT] = {
-    "Unit",
-    "Stmt",
-    "Prnt",
-    "Ctrl",
-    "Cond",
-    "Loop",
-    "Atom",
-    "Expr",
-    "Pexp",
-    "Bexp",
-};
+static struct node stack[STACK_MAX_DEPTH];
+static size_t st_size;
 
 struct term {
+    /* a rule RHS term is either a terminal token or a non-terminal */
     union {
-        const token_t tm;
-        const non_terminal_t nt;
+        const tk_t tk;
+        const nt_t nt;
     };
 
-    const uint8_t is_terminal: 1;
-    const uint8_t is_multiplier: 1;
+    /* indicates which field of the above union to use */
+    const uint8_t is_tk: 1;
+
+    /* indicates that the non-terminal can be matched multiple times */
+    const uint8_t is_mt: 1;
 };
 
 struct rule {
-    const non_terminal_t lhs;
+    /* left-hand side of rule */
+    const nt_t lhs;
+
+    /* right-hand side of rule */
     const struct term rhs[RULE_RHS_LAST + 1];
 };
 
-#define n(_nt) { .nt = NT_##_nt, .is_terminal = 0, .is_multiplier = 0 }
-#define m(_nt) { .nt = NT_##_nt, .is_terminal = 0, .is_multiplier = 1 }
-#define t(_tm) { .tm = TK_##_tm, .is_terminal = 1, .is_multiplier = 0 }
-#define no     { .tm = TK_COUNT, .is_terminal = 1, .is_multiplier = 0 }
+#define n(_nt) { .nt = NT_##_nt, .is_tk = 0, .is_mt = 0 }
+#define m(_nt) { .nt = NT_##_nt, .is_tk = 0, .is_mt = 1 }
+#define t(_tm) { .tk = TK_##_tm, .is_tk = 1, .is_mt = 0 }
+#define no     { .tk = TK_COUNT, .is_tk = 1, .is_mt = 0 }
 
 #define r1(_lhs, t1) \
     { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, no, no, no, t1, } },
@@ -95,13 +92,65 @@ static const struct rule grammar[] = {
 #undef t
 #undef no
 
-static int term_eq_node(const struct term *term, const struct stree_node *node)
+static void print_stack(void)
 {
-    int node_is_leaf = node->num_children == 0;
+    static const char *nts[NT_COUNT] = {
+        "Unit",
+        "Stmt",
+        "Prnt",
+        "Ctrl",
+        "Cond",
+        "Loop",
+        "Atom",
+        "Expr",
+        "Pexp",
+        "Bexp",
+    };
 
-    if (term->is_terminal == node_is_leaf) {
+    for (size_t i = 0; i < st_size; ++i) {
+        if (stack[i].nchildren) {
+            printf(YELLOW("%s "), nts[stack[i].nt]);
+        } else if (stack[i].token->tk == TK_FBEG) {
+            printf(GREEN("^ "));
+        } else if (stack[i].token->tk == TK_FEND) {
+            printf(GREEN("$ "));
+        } else {
+            int len = stack[i].token->end - stack[i].token->beg;
+            printf(GREEN("%.*s "), len, stack[i].token->beg);
+        }
+    }
+
+    puts("");
+}
+
+static void destroy_node(struct node *node)
+{
+    if (node->nchildren) {
+        for (size_t i = 0; i < node->nchildren; ++i) {
+            destroy_node(node->children[i]);
+        }
+
+        free(*&node->children[0]);
+        free(node->children);
+    }
+}
+
+static void destroy_stack(void)
+{
+    for (size_t i = 0; i < st_size; ++i) {
+        destroy_node(&stack[i]);
+    }
+
+    st_size = 0;
+}
+
+static int term_eq_node(const struct term *term, const struct node *node)
+{
+    int node_is_leaf = node->nchildren == 0;
+
+    if (term->is_tk == node_is_leaf) {
         if (node_is_leaf) {
-            return term->tm == node->tm->token;
+            return term->tk == node->token->tk;
         } else {
             return term->nt == node->nt;
         }
@@ -110,33 +159,93 @@ static int term_eq_node(const struct term *term, const struct stree_node *node)
     return 0;
 }
 
-static void print_stack(const struct stree_node *stack, size_t size)
+static size_t match_rule(const struct rule *rule, size_t *at)
 {
-    for (size_t i = 0; i < size; ++i) {
-        if (stack[i].num_children == 0) {
-            if (stack[i].tm->token == TK_FBEG) {
-                printf(GREEN("^ "));
-            } else if (stack[i].tm->token == TK_FEND) {
-                printf(GREEN("$ "));
-            } else {
-                int len = stack[i].tm->end - stack[i].tm->beg;
-                printf(GREEN("%.*s "), len, stack[i].tm->beg);
-            }
-        } else {
-            printf(YELLOW("%s "), nts[stack[i].nt]);
-        }
-    }
+    const struct term *prev = NULL;
+    const struct term *term = &rule->rhs[RULE_RHS_LAST];
+    ssize_t st_idx = st_size - 1;
 
-    puts("");
+    do {
+        if (term_eq_node(term, &stack[st_idx])) {
+            prev = term->is_mt ? term : NULL;
+            --term, --st_idx;
+        } else if (prev && term_eq_node(prev, &stack[st_idx])) {
+            --st_idx;
+        } else if (term->is_mt) {
+            prev = NULL;
+            --term;
+        } else {
+            term = NULL;
+            break;
+        }
+    } while (st_idx >= 0 && !(term->is_tk && term->tk == TK_COUNT));
+
+    int reached_eor = term && term->is_tk && term->tk == TK_COUNT;
+    size_t reduction_size = st_size - st_idx - 1;
+
+    return reached_eor && reduction_size ?
+        (*at = st_idx + 1, reduction_size) : 0;
 }
 
-struct stree_node parse(const struct token_range *ranges, size_t nranges)
+static inline void shift(const struct token *token)
 {
-    ssize_t st_size = 0;
-    static struct stree_node stack[STACK_MAX_DEPTH];
+    stack[st_size++] = (struct node) {
+        .nchildren = 0,
+        .token = token,
+    };
+}
+
+static int reduce(const struct rule *rule, const size_t at, const size_t size)
+{
+    struct node *child_nodes = malloc(size * sizeof(struct node));
+
+    if (!child_nodes) {
+        return -1;
+    }
+
+    struct node *const reduce_at = &stack[at];
+    struct node **const old_children = reduce_at->children;
+    reduce_at->children = malloc(size * sizeof(struct node *)) ?: old_children;
+
+    if (reduce_at->children == old_children) {
+        return free(child_nodes), -1;
+    }
+
+    for (size_t child_idx = 0, st_idx = at; 
+        st_idx < st_size;
+        ++st_idx, ++child_idx) {
+
+        child_nodes[child_idx] = stack[st_idx];
+        reduce_at->children[child_idx] = &child_nodes[child_idx];
+    }
+
+    child_nodes[0].children = old_children;
+    reduce_at->nchildren = size;
+    reduce_at->nt = rule->lhs;
+    st_size = at + 1;
+    return 0;
+}
+
+struct node parse(const struct token *ranges, const size_t nranges)
+{
+    static const struct token reject = {
+        .tk = TK_COUNT
+    }, nomem = {
+        .tk = TK_COUNT + 1
+    };
+    
+    static const struct node err_reject = {
+        .nchildren = 0,
+        .token = &reject,
+    }, err_nomem = {
+        .nchildren = 0,
+        .token = &nomem,
+    };
+
+    st_size = 0;
 
     for (size_t range_idx = 0; range_idx < nranges; ++range_idx) {
-        if (ranges[range_idx].token == TK_WSPC) {
+        if (ranges[range_idx].tk == TK_WSPC) {
             continue;
         }
 
@@ -145,77 +254,30 @@ struct stree_node parse(const struct token_range *ranges, size_t nranges)
             break;
         }
 
-        stack[st_size++] = (struct stree_node) {
-            .num_children = 0,
-            .tm = &ranges[range_idx],
-            .children = NULL
-        };
-
-        printf(CYAN("Shift: "));
-        print_stack(stack, st_size);
+        shift(&ranges[range_idx]);
+        printf(CYAN("Shift: ")), print_stack();
         
         try_reduce_again:;
         const struct rule *rule = grammar;
 
         do {
-            const struct term *prev_term = NULL;
-            const struct term *term = &rule->rhs[RULE_RHS_LAST];
-            ssize_t st_idx = st_size - 1;
+            size_t reduction_at;
+            size_t reduction_size = match_rule(rule, &reduction_at);
 
-            do {
-                if (term_eq_node(term, &stack[st_idx])) {
-                    prev_term = term->is_multiplier ? term : NULL;
-                    --term, --st_idx;
-                } else if (prev_term && term_eq_node(prev_term, &stack[st_idx])) {
-                    --st_idx;
-                } else if (term->is_multiplier) {
-                    prev_term = NULL;
-                    --term;
-                } else {
-                    term = NULL;
-                    break;
-                }
-            } while (st_idx >= 0 && !(term->is_terminal && term->tm == TK_COUNT));
-
-            int reached_eor = term && term->is_terminal && term->tm == TK_COUNT;
-            size_t reduction_size = st_size - st_idx - 1;
-
-            if (reached_eor && reduction_size) {
-                size_t reduction_idx = ++st_idx;
-
-                struct stree_node *child_nodes = malloc(
-                    reduction_size * sizeof(struct stree_node));
-                
-                struct stree_node **old_children = stack[reduction_idx].children;
-                
-                stack[reduction_idx].children = malloc(
-                    reduction_size * sizeof(struct stree_node *));
-
-                for (size_t node_idx = 0; st_idx < st_size; ++st_idx, ++node_idx) {
-                    child_nodes[node_idx] = stack[st_idx];
-                    stack[reduction_idx].children[node_idx] = &child_nodes[node_idx];
+            if (reduction_size) {
+                if (reduce(rule, reduction_at, reduction_size)) {
+                    return destroy_stack(), err_nomem;
                 }
 
-                child_nodes[0].children = old_children;
-                stack[reduction_idx].num_children = reduction_size;
-                stack[reduction_idx].nt = rule->lhs;
-                st_size = reduction_idx + 1;
-
-                printf(ORANGE("Red%02td: "), rule - grammar + 1);
-                print_stack(stack, st_size);
-
+                ptrdiff_t rule_number = rule - grammar + 1;
+                printf(ORANGE("Red%02td: "), rule_number), print_stack();
                 goto try_reduce_again;
             }
         } while (++rule != grammar + GRAMMAR_SIZE);
     }
 
-    printf(st_size == 1 ? GREEN("ACCEPT ") : RED("REJECT "));
-    print_stack(stack, st_size);
-    puts("");
-    
-    static const struct token_range error = { .token = TK_COUNT };
-    return st_size == 1 ? stack[0] : (struct stree_node) {
-        .num_children = 0,
-        .tm = &error,
-    };
+    int accepted = st_size == 1;
+
+    printf(accepted ? GREEN("ACCEPT ") : RED("REJECT ")), print_stack();
+    return accepted ? stack[0] : err_reject;
 }

@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-enum token {
+enum {
     TK_NAME,
     TK_NMBR,
     TK_WSPC,
@@ -25,11 +25,11 @@ enum token {
     TK_FEND,
 };
 
-typedef uint8_t token_t;
+typedef uint8_t tk_t;
 
-struct token_range {
+struct token {
     const uint8_t *beg, *end;
-    token_t token;
+    tk_t tk;
 };
 
-int lex(const uint8_t *input, struct token_range *ranges, size_t *nranges);
+int lex(const uint8_t *input, struct token *ranges, size_t *nranges);

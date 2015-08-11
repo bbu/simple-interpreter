@@ -11,7 +11,7 @@
 #include "parse.h"
 #include "run.h"
 
-struct token_range ranges[200];
+struct token ranges[200];
 size_t nranges;
 
 int main(int argc, char **argv)
@@ -47,13 +47,13 @@ int main(int argc, char **argv)
     puts(WHITE("*** Lexing ***"));
 
     for (size_t i = 0, alternate = 0; i < nranges; ++i) {
-        struct token_range range = ranges[i];
+        struct token range = ranges[i];
 
-        if (range.token == TK_FBEG || range.token == TK_FEND) {
+        if (range.tk == TK_FBEG || range.tk == TK_FEND) {
             continue;
         }
 
-        if (range.token != TK_WSPC) {
+        if (range.tk != TK_WSPC) {
             alternate++;
         }
 
@@ -69,10 +69,10 @@ int main(int argc, char **argv)
     }
 
     puts(WHITE("\n*** Parsing ***"));
-    struct stree_node root = parse(ranges, nranges);
+    struct node root = parse(ranges, nranges);
 
-    if (root.num_children && root.nt == NT_Unit) {
-        puts(WHITE("*** Running ***"));
+    if (root.nchildren && root.nt == NT_Unit) {
+        puts(WHITE("\n*** Running ***"));
         run(&root);
     }
 
