@@ -181,6 +181,12 @@ static int eval_bexp(const struct node *bexp)
     case TK_MINS:
         return eval_expr(bexp->children[0]) - eval_expr(bexp->children[2]);
 
+    case TK_MULT:
+        return eval_expr(bexp->children[0]) * eval_expr(bexp->children[2]);
+
+    case TK_DIVD:
+        return eval_expr(bexp->children[0]) / eval_expr(bexp->children[2]);
+
     case TK_EQUL:
         return eval_expr(bexp->children[0]) == eval_expr(bexp->children[2]);
 

@@ -148,6 +148,8 @@ TOKEN_DEFINE_2(tk_conj, "&&");
 TOKEN_DEFINE_2(tk_disj, "||");
 TOKEN_DEFINE_1(tk_plus, "+");
 TOKEN_DEFINE_1(tk_mins, "-");
+TOKEN_DEFINE_1(tk_mult, "*");
+TOKEN_DEFINE_1(tk_divd, "/");
 TOKEN_DEFINE_1(tk_nega, "!");
 TOKEN_DEFINE_4(tk_read, "read");
 TOKEN_DEFINE_5(tk_prnt, "print");
@@ -178,6 +180,8 @@ static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
     tk_disj,
     tk_plus,
     tk_mins,
+    tk_mult,
+    tk_divd,
     tk_nega,
     tk_read,
     tk_prnt,

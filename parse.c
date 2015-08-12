@@ -90,8 +90,6 @@ static const struct rule grammar[] = {
 
     r3(Pexp, t(LPAR), n(Expr), t(RPAR)                   )
 
-    r3(Bexp, n(Expr), t(PLUS), n(Expr)                   )
-    r3(Bexp, n(Expr), t(MINS), n(Expr)                   )
     r3(Bexp, n(Expr), t(EQUL), n(Expr)                   )
     r3(Bexp, n(Expr), t(NEQL), n(Expr)                   )
     r3(Bexp, n(Expr), t(LTHN), n(Expr)                   )
@@ -100,6 +98,10 @@ static const struct rule grammar[] = {
     r3(Bexp, n(Expr), t(GTEQ), n(Expr)                   )
     r3(Bexp, n(Expr), t(CONJ), n(Expr)                   )
     r3(Bexp, n(Expr), t(DISJ), n(Expr)                   )
+    r3(Bexp, n(Expr), t(PLUS), n(Expr)                   )
+    r3(Bexp, n(Expr), t(MINS), n(Expr)                   )
+    r3(Bexp, n(Expr), t(MULT), n(Expr)                   )
+    r3(Bexp, n(Expr), t(DIVD), n(Expr)                   )
 
     r2(Uexp, t(PLUS), n(Expr)                            )
     r2(Uexp, t(MINS), n(Expr)                            )
@@ -121,6 +123,21 @@ static const struct rule grammar[] = {
 #undef m
 #undef t
 #undef no
+
+static const uint8_t precedence[TK_DIVD - TK_EQUL + 1] = {
+    7,
+    7,
+    6,
+    6,
+    6,
+    6,
+    11,
+    12,
+    4,
+    4,
+    3,
+    3,
+};
 
 static void print_stack(void)
 {
@@ -296,7 +313,26 @@ struct node parse(const struct token *ranges, const size_t nranges)
         do {
             size_t reduction_at, reduction_size;
 
-            if ((reduction_size = match_rule(rule, &reduction_at))) {            
+            if ((reduction_size = match_rule(rule, &reduction_at))) {
+                if (rule->lhs == NT_Bexp) {
+                    while (ranges[range_idx].tk == TK_WSPC) {
+                        ++range_idx;
+                    }
+
+                    const struct token *ahead = &ranges[range_idx];
+
+                    if (ahead->tk >= TK_EQUL && ahead->tk <= TK_DIVD) {
+                        uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
+                        uint8_t p2 = precedence[ahead->tk - TK_EQUL];
+                        
+                        if (p2 < p1) {
+                            shift(&ranges[range_idx++]);
+                            printf(CYAN("Shift: ")), print_stack();
+                            goto try_reduce_again;
+                        }
+                    }
+                }
+            
                 if (reduce(rule, reduction_at, reduction_size)) {
                     puts(RED("Out of memory!"));
                     return destroy_stack(), err_nomem;

@@ -34,6 +34,8 @@ enum {
     TK_DISJ,
     TK_PLUS,
     TK_MINS,
+    TK_MULT,
+    TK_DIVD,
     TK_NEGA,
     TK_READ,
     TK_PRNT,
