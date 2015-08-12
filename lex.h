@@ -3,6 +3,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#define COLOURED(s, c) "\033[1;" #c "m" s "\033[0m"
+#define RED(s)         COLOURED(s, 31)
+#define GREEN(s)       COLOURED(s, 32)
+#define YELLOW(s)      COLOURED(s, 33)
+#define ORANGE(s)      COLOURED(s, 34)
+#define CYAN(s)        COLOURED(s, 36)
+#define WHITE(s)       COLOURED(s, 37)
+
 enum {
     TK_NAME,
     TK_NMBR,
@@ -12,6 +20,8 @@ enum {
     TK_LBRC,
     TK_RBRC,
     TK_COND,
+    TK_ELIF,
+    TK_ELSE,
     TK_WHIL,
     TK_ASSN,
     TK_EQUL,
@@ -28,6 +38,8 @@ enum {
     TK_READ,
     TK_PRNT,
     TK_SCOL,
+    TK_QUES,
+    TK_COLN,
     TK_COUNT,
     TK_FBEG,
     TK_FEND,

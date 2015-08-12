@@ -69,10 +69,14 @@ static const struct rule grammar[] = {
 
     r3(Prnt, t(PRNT), n(Expr), t(SCOL)                   )
 
-    r1(Ctrl, n(Cond)                                     )
+    r2(Ctrl, n(Cond), m(Elif)                            )
+    r3(Ctrl, n(Cond), m(Elif), n(Else)                   )
     r1(Ctrl, n(Loop)                                     )
 
     r5(Cond, t(COND), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
+    r5(Elif, t(ELIF), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
+    r4(Else, t(ELSE), t(LBRC), m(Stmt), t(RBRC)          )
+
     r5(Loop, t(WHIL), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
 
     r1(Atom, t(NAME)                                     )
@@ -82,6 +86,7 @@ static const struct rule grammar[] = {
     r1(Expr, n(Pexp)                                     )
     r1(Expr, n(Bexp)                                     )
     r1(Expr, n(Uexp)                                     )
+    r1(Expr, n(Texp)                                     )
 
     r3(Pexp, t(LPAR), n(Expr), t(RPAR)                   )
 
@@ -99,6 +104,8 @@ static const struct rule grammar[] = {
     r2(Uexp, t(PLUS), n(Expr)                            )
     r2(Uexp, t(MINS), n(Expr)                            )
     r2(Uexp, t(NEGA), n(Expr)                            )
+
+    r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr) )
 };
 
 #undef r1
@@ -125,12 +132,15 @@ static void print_stack(void)
         "Prnt",
         "Ctrl",
         "Cond",
+        "Elif",
+        "Else",
         "Loop",
         "Atom",
         "Expr",
         "Pexp",
         "Bexp",
         "Uexp",
+        "Texp",
     };
 
     for (size_t i = 0; i < st_size; ++i) {
@@ -266,8 +276,9 @@ struct node parse(const struct token *ranges, const size_t nranges)
 
     st_size = 0;
 
-    for (size_t range_idx = 0; range_idx < nranges; ++range_idx) {
+    for (size_t range_idx = 0; range_idx < nranges; ) {
         if (ranges[range_idx].tk == TK_WSPC) {
+            ++range_idx;
             continue;
         }
 
@@ -276,7 +287,7 @@ struct node parse(const struct token *ranges, const size_t nranges)
             return destroy_stack(), err_overflow;
         }
 
-        shift(&ranges[range_idx]);
+        shift(&ranges[range_idx++]);
         printf(CYAN("Shift: ")), print_stack();
         
         try_reduce_again:;
@@ -285,7 +296,7 @@ struct node parse(const struct token *ranges, const size_t nranges)
         do {
             size_t reduction_at, reduction_size;
 
-            if ((reduction_size = match_rule(rule, &reduction_at))) {
+            if ((reduction_size = match_rule(rule, &reduction_at))) {            
                 if (reduce(rule, reduction_at, reduction_size)) {
                     puts(RED("Out of memory!"));
                     return destroy_stack(), err_nomem;
@@ -293,6 +304,21 @@ struct node parse(const struct token *ranges, const size_t nranges)
 
                 ptrdiff_t rule_number = rule - grammar + 1;
                 printf(ORANGE("Red%02td: "), rule_number), print_stack();
+
+                /* dirty hack to parse if-elif-else chains */
+                if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
+                    while (ranges[range_idx].tk == TK_WSPC) {
+                        ++range_idx;
+                    }
+
+                    const struct token *ahead = &ranges[range_idx];
+
+                    if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
+                        shift(&ranges[range_idx++]);
+                        printf(CYAN("Shift: ")), print_stack();
+                    }
+                }
+
                 goto try_reduce_again;
             }
         } while (++rule != grammar + GRAMMAR_SIZE);
@@ -303,4 +329,9 @@ struct node parse(const struct token *ranges, const size_t nranges)
 
     printf(accepted ? GREEN("ACCEPT ") : RED("REJECT ")), print_stack();
     return accepted ? stack[0] : (destroy_stack(), err_reject);
+}
+
+void destroy_tree(struct node root)
+{
+    destroy_node(&root);
 }

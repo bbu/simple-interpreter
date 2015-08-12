@@ -11,7 +11,7 @@
 #include "parse.h"
 #include "run.h"
 
-struct token ranges[200];
+struct token ranges[400];
 size_t nranges;
 
 int main(int argc, char **argv)
@@ -43,8 +43,8 @@ int main(int argc, char **argv)
         return perror("mmap"), close(fd), EXIT_FAILURE;
     }
 
-    int lexed = lex(mapped, ranges, &nranges);
     puts(WHITE("*** Lexing ***"));
+    int lexed = lex(mapped, ranges, &nranges);
 
     for (size_t i = 0, alternate = 0; i < nranges; ++i) {
         struct token range = ranges[i];
@@ -68,13 +68,18 @@ int main(int argc, char **argv)
         }
     }
 
-    puts(WHITE("\n*** Parsing ***"));
-    struct node root = parse(ranges, nranges);
+    if (lexed) {
+        puts(WHITE("\n*** Parsing ***"));
+        struct node root = parse(ranges, nranges);
 
-    if (parse_success(root)) {
-        puts(WHITE("\n*** Running ***"));
-        run(&root);
+        if (parse_success(root)) {
+            puts(WHITE("\n*** Running ***"));
+            run(&root);
+            destroy_tree(root);
+        }
     }
 
-    return munmap((uint8_t *) mapped, size), close(fd), EXIT_SUCCESS;
+    munmap((uint8_t *) mapped, size);
+    close(fd);
+    return EXIT_SUCCESS;
 }

@@ -134,6 +134,8 @@ TOKEN_DEFINE_1(tk_rpar, ")");
 TOKEN_DEFINE_1(tk_lbrc, "{");
 TOKEN_DEFINE_1(tk_rbrc, "}");
 TOKEN_DEFINE_2(tk_cond, "if");
+TOKEN_DEFINE_4(tk_elif, "elif");
+TOKEN_DEFINE_4(tk_else, "else");
 TOKEN_DEFINE_5(tk_loop, "while");
 TOKEN_DEFINE_1(tk_assn, "=");
 TOKEN_DEFINE_2(tk_equl, "==");
@@ -150,6 +152,8 @@ TOKEN_DEFINE_1(tk_nega, "!");
 TOKEN_DEFINE_4(tk_read, "read");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
+TOKEN_DEFINE_1(tk_ques, "?");
+TOKEN_DEFINE_1(tk_coln, ":");
 
 static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
     tk_name,
@@ -160,6 +164,8 @@ static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
     tk_lbrc,
     tk_rbrc,
     tk_cond,
+    tk_elif,
+    tk_else,
     tk_loop,
     tk_assn,
     tk_equl,
@@ -176,6 +182,8 @@ static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
     tk_read,
     tk_prnt,
     tk_scol,
+    tk_ques,
+    tk_coln,
 };
 
 int lex(const uint8_t *input, struct token *ranges, size_t *nranges)

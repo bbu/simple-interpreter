@@ -8,13 +8,12 @@ static void run_assn(const struct node *);
 static void run_read(const struct node *);
 static void run_prnt(const struct node *);
 static void run_ctrl(const struct node *);
-static void run_cond(const struct node *);
-static void run_loop(const struct node *);
 static int eval_atom(const struct node *);
 static int eval_expr(const struct node *);
 static int eval_pexp(const struct node *);
 static int eval_bexp(const struct node *);
 static int eval_uexp(const struct node *);
+static int eval_texp(const struct node *);
 
 void run(const struct node *unit)
 {
@@ -68,38 +67,57 @@ static void run_prnt(const struct node *prnt)
 static void run_ctrl(const struct node *ctrl)
 {
     switch (ctrl->children[0]->nt) {
-    case NT_Cond:
-        run_cond(ctrl->children[0]);
-        break;
+    case NT_Cond: {
+        const struct node *cond = ctrl->children[0];
+    
+        if (eval_expr(cond->children[1])) {
+            const struct node *stmt = cond->children[3];
 
-    case NT_Loop:
-        run_loop(ctrl->children[0]);
-        break;
+            while (stmt->nchildren) {
+                run_stmt(stmt++);
+            }
+        } else if (ctrl->nchildren >= 2) {
+            size_t child_idx = 1;
+
+            do {
+                if (ctrl->children[child_idx]->nt == NT_Elif) {
+                    const struct node *elif = ctrl->children[child_idx];
+                    
+                    if (eval_expr(elif->children[1])) {
+                        const struct node *stmt = elif->children[3];
+                    
+                        while (stmt->nchildren) {
+                            run_stmt(stmt++);
+                        }
+                        
+                        break;
+                    }
+                } else {
+                    const struct node *els = ctrl->children[child_idx];
+                    const struct node *stmt = els->children[2];
+                    
+                    while (stmt->nchildren) {
+                        run_stmt(stmt++);
+                    }                    
+                }
+            } while (++child_idx < ctrl->nchildren);
+        }
+    } break;
+
+    case NT_Loop: {
+        const struct node *loop = ctrl->children[0];
+
+        while (eval_expr(loop->children[1])) {
+            const struct node *stmt = loop->children[3];
+
+            while (stmt->nchildren) {
+                run_stmt(stmt++);
+            }
+        }
+    } break;
 
     default:
         break;
-    }
-}
-
-static void run_cond(const struct node *cond)
-{
-    if (eval_expr(cond->children[1])) {
-        const struct node *stmt = cond->children[3];
-
-        while (stmt->nchildren) {
-            run_stmt(stmt++);
-        }
-    }
-}
-
-static void run_loop(const struct node *loop)
-{
-    while (eval_expr(loop->children[1])) {
-        const struct node *stmt = loop->children[3];
-
-        while (stmt->nchildren) {
-            run_stmt(stmt++);
-        }
     }
 }
 
@@ -140,6 +158,9 @@ static int eval_expr(const struct node *expr)
 
     case NT_Uexp:
         return eval_uexp(expr->children[0]);
+        
+    case NT_Texp:
+        return eval_texp(expr->children[0]);
 
     default:
         return 0;
@@ -204,4 +225,10 @@ static int eval_uexp(const struct node *uexp)
     default:
         return 0;
     }
+}
+
+static int eval_texp(const struct node *texp)
+{
+    return eval_expr(texp->children[0]) ? 
+        eval_expr(texp->children[2]) : eval_expr(texp->children[4]);
 }
