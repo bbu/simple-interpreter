@@ -60,13 +60,10 @@ static const struct rule grammar[] = {
     r3(Unit, t(FBEG), m(Stmt), t(FEND)                   )
 
     r1(Stmt, n(Assn)                                     )
-    r1(Stmt, n(Read)                                     )
     r1(Stmt, n(Prnt)                                     )
     r1(Stmt, n(Ctrl)                                     )
 
     r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)          )
-
-    r3(Read, t(READ), n(Expr), t(SCOL)                   )
 
     r3(Prnt, t(PRNT), n(Expr), t(SCOL)                   )
 
@@ -146,7 +143,6 @@ static void print_stack(void)
         "Unit",
         "Stmt",
         "Assn",
-        "Read",
         "Prnt",
         "Ctrl",
         "Cond",

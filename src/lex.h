@@ -40,7 +40,6 @@ enum {
     TK_MULT,
     TK_DIVD,
     TK_NEGA,
-    TK_READ,
     TK_PRNT,
     TK_SCOL,
     TK_QUES,

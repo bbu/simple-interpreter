@@ -212,7 +212,6 @@ TOKEN_DEFINE_1(tk_mins, "-");
 TOKEN_DEFINE_1(tk_mult, "*");
 TOKEN_DEFINE_1(tk_divd, "/");
 TOKEN_DEFINE_1(tk_nega, "!");
-TOKEN_DEFINE_4(tk_read, "read");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
 TOKEN_DEFINE_1(tk_ques, "?");
@@ -246,7 +245,6 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t) = {
     tk_mult,
     tk_divd,
     tk_nega,
-    tk_read,
     tk_prnt,
     tk_scol,
     tk_ques,

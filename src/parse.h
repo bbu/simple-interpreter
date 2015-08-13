@@ -7,7 +7,6 @@ enum {
     NT_Unit,
     NT_Stmt,
     NT_Assn,
-    NT_Read,
     NT_Prnt,
     NT_Ctrl,
     NT_Cond,

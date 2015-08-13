@@ -1,11 +1,12 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "lex.h"
 #include "parse.h"
 
 static void run_stmt(const struct node *);
 static void run_assn(const struct node *);
-static void run_read(const struct node *);
 static void run_prnt(const struct node *);
 static void run_ctrl(const struct node *);
 static int eval_atom(const struct node *);
@@ -16,15 +17,21 @@ static int eval_uexp(const struct node *);
 static int eval_texp(const struct node *);
 
 #define VARSTORE_CAPACITY 128
-/*
+
 static struct {
-    const uint8_t *beg, *end;
-    int value;
-} varstore[VARSTORE_CAPACITY];
-*/
+    size_t size;
+
+    struct {
+        const uint8_t *beg;
+        ptrdiff_t len;
+        int val;
+    } values[VARSTORE_CAPACITY];
+} varstore;
 
 void run(const struct node *const unit)
 {
+    varstore.size = 0;
+
     for (size_t stmt_idx = 1; stmt_idx < unit->nchildren - 1; ++stmt_idx) {
         run_stmt(unit->children[stmt_idx]);
     }
@@ -35,10 +42,6 @@ static void run_stmt(const struct node *const stmt)
     switch (stmt->children[0]->nt) {
     case NT_Assn:
         run_assn(stmt->children[0]);
-        break;
-
-    case NT_Read:
-        run_read(stmt->children[0]);
         break;
 
     case NT_Prnt:
@@ -56,15 +59,28 @@ static void run_stmt(const struct node *const stmt)
 
 static void run_assn(const struct node *const assn)
 {
-    printf("assign\n");
-}
-
-static void run_read(const struct node *const read)
-{
-    int input;
-
-    printf("read: ");
-    scanf("%d", &input);
+    const uint8_t *beg = assn->children[0]->token->beg;
+    ptrdiff_t len = assn->children[0]->token->end - beg;
+    size_t idx;
+    
+    for (idx = 0; idx < varstore.size; ++idx) {
+        if (varstore.values[idx].len == len) {
+            if (!memcmp(varstore.values[idx].beg, beg, len)) {
+                varstore.values[idx].val = eval_expr(assn->children[2]);
+                return;
+            }
+        }
+    }
+    
+    if (idx < VARSTORE_CAPACITY) {
+        varstore.values[idx].val = eval_expr(assn->children[2]);
+        varstore.values[idx].beg = beg;
+        varstore.values[idx].len = len;
+        
+        varstore.size++;
+    } else {
+        fprintf(stderr, "exception: varstore exhausted\n");
+    }
 }
 
 static void run_prnt(const struct node *const prnt)
@@ -132,9 +148,21 @@ static void run_ctrl(const struct node *const ctrl)
 static int eval_atom(const struct node *const atom)
 {
     switch (atom->children[0]->token->tk) {
-    case TK_NAME:
-        return 0;
+    case TK_NAME: {
+        const uint8_t *beg = atom->children[0]->token->beg;
+        ptrdiff_t len = atom->children[0]->token->end - beg;
 
+        for (size_t idx = 0; idx < varstore.size; ++idx) {
+            if (varstore.values[idx].len == len) {
+                if (!memcmp(varstore.values[idx].beg, beg, len)) {
+                    return varstore.values[idx].val;
+                }
+            }
+        }
+
+        return 0;
+    }
+    
     case TK_NMBR: {
         const uint8_t *beg = atom->children[0]->token->beg;
         const uint8_t *end = atom->children[0]->token->end;
