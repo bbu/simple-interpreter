@@ -3,18 +3,21 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define COLOURED(s, c) "\033[1;" #c "m" s "\033[0m"
-#define RED(s)         COLOURED(s, 31)
-#define GREEN(s)       COLOURED(s, 32)
-#define YELLOW(s)      COLOURED(s, 33)
-#define ORANGE(s)      COLOURED(s, 34)
-#define CYAN(s)        COLOURED(s, 36)
-#define WHITE(s)       COLOURED(s, 37)
+#define COLOURED(s, b, c) "\033[" #b ";" #c "m" s "\033[0m"
+#define GRAY(s)        COLOURED(s, 0, 37)
+#define RED(s)         COLOURED(s, 1, 31)
+#define GREEN(s)       COLOURED(s, 1, 32)
+#define YELLOW(s)      COLOURED(s, 1, 33)
+#define ORANGE(s)      COLOURED(s, 1, 34)
+#define CYAN(s)        COLOURED(s, 1, 36)
+#define WHITE(s)       COLOURED(s, 1, 37)
 
 enum {
     TK_NAME,
     TK_NMBR,
     TK_WSPC,
+    TK_LCOM,
+    TK_BCOM,
     TK_LPAR,
     TK_RPAR,
     TK_LBRC,

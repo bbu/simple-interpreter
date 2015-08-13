@@ -7,6 +7,7 @@
 #define RULE_RHS_LAST 8
 #define STACK_MAX_DEPTH 256
 #define GRAMMAR_SIZE (sizeof(grammar) / sizeof(*grammar))
+#define SKIP_TOKEN(t) ((t) == TK_WSPC || (t) == TK_LCOM || (t) == TK_BCOM)
 
 static struct node stack[STACK_MAX_DEPTH];
 static size_t st_size;
@@ -279,7 +280,7 @@ static int reduce(const struct rule *rule, const size_t at, const size_t size)
     return 0;
 }
 
-struct node parse(const struct token *ranges, const size_t nranges)
+struct node parse(const struct token *const tokens, const size_t ntokens)
 {
     static const struct token 
         reject       = { .tk = TK_COUNT + 0 },
@@ -293,9 +294,9 @@ struct node parse(const struct token *ranges, const size_t nranges)
 
     st_size = 0;
 
-    for (size_t range_idx = 0; range_idx < nranges; ) {
-        if (ranges[range_idx].tk == TK_WSPC) {
-            ++range_idx;
+    for (size_t token_idx = 0; token_idx < ntokens; ) {
+        if (SKIP_TOKEN(tokens[token_idx].tk)) {
+            ++token_idx;
             continue;
         }
 
@@ -304,7 +305,7 @@ struct node parse(const struct token *ranges, const size_t nranges)
             return destroy_stack(), err_overflow;
         }
 
-        shift(&ranges[range_idx++]);
+        shift(&tokens[token_idx++]);
         printf(CYAN("Shift: ")), print_stack();
         
         try_reduce_again:;
@@ -314,19 +315,20 @@ struct node parse(const struct token *ranges, const size_t nranges)
             size_t reduction_at, reduction_size;
 
             if ((reduction_size = match_rule(rule, &reduction_at))) {
+                /* check whether the operator ahead has a lower precedence */
                 if (rule->lhs == NT_Bexp) {
-                    while (ranges[range_idx].tk == TK_WSPC) {
-                        ++range_idx;
+                    while (SKIP_TOKEN(tokens[token_idx].tk)) {
+                        ++token_idx;
                     }
 
-                    const struct token *ahead = &ranges[range_idx];
+                    const struct token *ahead = &tokens[token_idx];
 
                     if (ahead->tk >= TK_EQUL && ahead->tk <= TK_DIVD) {
                         uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
                         uint8_t p2 = precedence[ahead->tk - TK_EQUL];
                         
                         if (p2 < p1) {
-                            shift(&ranges[range_idx++]);
+                            shift(&tokens[token_idx++]);
                             printf(CYAN("Shift: ")), print_stack();
                             goto try_reduce_again;
                         }
@@ -343,14 +345,14 @@ struct node parse(const struct token *ranges, const size_t nranges)
 
                 /* dirty hack to parse if-elif-else chains */
                 if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
-                    while (ranges[range_idx].tk == TK_WSPC) {
-                        ++range_idx;
+                    while (SKIP_TOKEN(tokens[token_idx].tk)) {
+                        ++token_idx;
                     }
 
-                    const struct token *ahead = &ranges[range_idx];
+                    const struct token *ahead = &tokens[token_idx];
 
                     if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
-                        shift(&ranges[range_idx++]);
+                        shift(&tokens[token_idx++]);
                         printf(CYAN("Shift: ")), print_stack();
                     }
                 }

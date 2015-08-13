@@ -40,7 +40,7 @@ struct node {
     };
 };
 
-struct node parse(const struct token *ranges, const size_t nranges);
+struct node parse(const struct token *tokens, size_t ntokens);
 void destroy_tree(struct node root);
 
 #define parse_success(root) ((root).nchildren)

@@ -14,10 +14,10 @@ typedef uint8_t sts_t;
 #define IS_ALPHA(c)  (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
 #define IS_DIGIT(c)  ((c) >= '0' && (c) <= '9')
 #define IS_ALNUM(c)  (IS_ALPHA(c) || IS_DIGIT(c))
-#define IS_WSPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\n')
+#define IS_WSPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n')
 
 #define TOKEN_DEFINE_1(token, str) \
-static sts_t token(uint8_t c) \
+static sts_t token(const uint8_t c) \
 { \
     static char state; \
     \
@@ -29,7 +29,7 @@ static sts_t token(uint8_t c) \
 }
 
 #define TOKEN_DEFINE_2(token, str) \
-static sts_t token(uint8_t c) \
+static sts_t token(const uint8_t c) \
 { \
     static char state; \
     \
@@ -42,7 +42,7 @@ static sts_t token(uint8_t c) \
 }
 
 #define TOKEN_DEFINE_3(token, str) \
-static sts_t token(uint8_t c) \
+static sts_t token(const uint8_t c) \
 { \
     static char state; \
     \
@@ -56,7 +56,7 @@ static sts_t token(uint8_t c) \
 }
 
 #define TOKEN_DEFINE_4(token, str) \
-static sts_t token(uint8_t c) \
+static sts_t token(const uint8_t c) \
 { \
     static char state; \
     \
@@ -71,7 +71,7 @@ static sts_t token(uint8_t c) \
 }
 
 #define TOKEN_DEFINE_5(token, str) \
-static sts_t token(uint8_t c) \
+static sts_t token(const uint8_t c) \
 { \
     static char state; \
     \
@@ -86,7 +86,7 @@ static sts_t token(uint8_t c) \
     } \
 }
 
-static sts_t tk_name(uint8_t c)
+static sts_t tk_name(const uint8_t c)
 {
     static enum {
         tk_name_begin,
@@ -105,24 +105,82 @@ static sts_t tk_name(uint8_t c)
     return 0;
 }
 
-static sts_t tk_nmbr(uint8_t c)
+static sts_t tk_nmbr(const uint8_t c)
 {
     return IS_DIGIT(c) ? STS_ACCEPT : STS_REJECT;
 }
 
-static sts_t tk_wspc(uint8_t c)
+static sts_t tk_wspc(const uint8_t c)
 {
     static enum {
-        tk_wspace_begin,
-        tk_wspace_accum,
+        tk_wspc_begin,
+        tk_wspc_accum,
     } state;
 
     switch (state) {
-    case tk_wspace_begin:
-        return IS_WSPACE(c) ? TR(tk_wspace_accum, ACCEPT) : REJECT;
+    case tk_wspc_begin:
+        return IS_WSPACE(c) ? TR(tk_wspc_accum, ACCEPT) : REJECT;
 
-    case tk_wspace_accum:
+    case tk_wspc_accum:
         return IS_WSPACE(c) ? STS_ACCEPT : REJECT;
+    }
+
+    /* unreachable, but keeps the compiler happy */
+    return 0;
+}
+
+static sts_t tk_lcom(const uint8_t c)
+{
+    static enum {
+        tk_lcom_begin,
+        tk_lcom_first_slash,
+        tk_lcom_accum,
+        tk_lcom_end
+    } state;
+
+    switch (state) {
+    case tk_lcom_begin:
+        return c == '/' ? TR(tk_lcom_first_slash, HUNGRY) : REJECT;
+
+    case tk_lcom_first_slash:
+        return c == '/' ? TR(tk_lcom_accum, HUNGRY) : REJECT;
+
+    case tk_lcom_accum:
+        return c == '\n' || c == '\r' ? TR(tk_lcom_end, ACCEPT) : STS_HUNGRY;
+
+    case tk_lcom_end:
+        return REJECT;
+    }
+
+    /* unreachable, but keeps the compiler happy */
+    return 0;
+}
+
+static sts_t tk_bcom(const uint8_t c)
+{
+    static enum {
+        tk_bcom_begin,
+        tk_bcom_open_slash,
+        tk_bcom_accum,
+        tk_bcom_close_star,
+        tk_bcom_end
+    } state;
+
+    switch (state) {
+    case tk_bcom_begin:
+        return c == '/' ? TR(tk_bcom_open_slash, HUNGRY) : REJECT;
+
+    case tk_bcom_open_slash:
+        return c == '*' ? TR(tk_bcom_accum, HUNGRY) : REJECT;
+
+    case tk_bcom_accum:
+        return c != '*' ? STS_HUNGRY : TR(tk_bcom_close_star, HUNGRY);
+
+    case tk_bcom_close_star:
+        return c == '/' ? TR(tk_bcom_end, ACCEPT) : TR(tk_bcom_accum, HUNGRY);
+        
+    case tk_bcom_end:
+        return REJECT;
     }
 
     /* unreachable, but keeps the compiler happy */
@@ -157,10 +215,12 @@ TOKEN_DEFINE_1(tk_scol, ";");
 TOKEN_DEFINE_1(tk_ques, "?");
 TOKEN_DEFINE_1(tk_coln, ":");
 
-static sts_t (*const tokens[TK_COUNT])(uint8_t) = {
+static sts_t (*const tokens[TK_COUNT])(const uint8_t) = {
     tk_name,
     tk_nmbr,
     tk_wspc,
+    tk_lcom,
+    tk_bcom,
     tk_lpar,
     tk_rpar,
     tk_lbrc,

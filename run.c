@@ -226,7 +226,7 @@ static int eval_uexp(const struct node *uexp)
         return -eval_expr(uexp->children[1]);
 
     case TK_NEGA:
-		return !eval_expr(uexp->children[1]);
+        return !eval_expr(uexp->children[1]);
 
     default:
         return 0;

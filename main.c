@@ -11,8 +11,8 @@
 #include "parse.h"
 #include "run.h"
 
-struct token ranges[400];
-size_t nranges;
+struct token tokens[400];
+size_t ntokens;
 
 int main(int argc, char **argv)
 {
@@ -44,33 +44,35 @@ int main(int argc, char **argv)
     }
 
     puts(WHITE("*** Lexing ***"));
-    int lexed = lex(mapped, ranges, &nranges);
+    int lexed = lex(mapped, tokens, &ntokens);
 
-    for (size_t i = 0, alternate = 0; i < nranges; ++i) {
-        struct token range = ranges[i];
+    for (size_t i = 0, alternate = 0; i < ntokens; ++i) {
+        struct token token = tokens[i];
 
-        if (range.tk == TK_FBEG || range.tk == TK_FEND) {
+        if (token.tk == TK_FBEG || token.tk == TK_FEND) {
             continue;
         }
 
-        if (range.tk != TK_WSPC) {
+        if (token.tk != TK_WSPC && token.tk != TK_LCOM && token.tk != TK_BCOM) {
             alternate++;
         }
 
-        int len = range.end - range.beg;
+        int len = token.end - token.beg;
 
-        if (i == nranges - 1 && !lexed) {
-            printf(RED("%.*s") CYAN(" < Unknown token\n"), len ?: 1, range.beg);
+        if (i == ntokens - 1 && !lexed) {
+            printf(RED("%.*s") CYAN(" < Unknown token\n"), len ?: 1, token.beg);
+        } else if (token.tk == TK_LCOM || token.tk == TK_BCOM) {
+            printf(GRAY("%.*s"), len, token.beg);
         } else if (alternate % 2) {
-            printf(GREEN("%.*s"), len, range.beg);
+            printf(GREEN("%.*s"), len, token.beg);
         } else {
-            printf(YELLOW("%.*s"), len, range.beg);
+            printf(YELLOW("%.*s"), len, token.beg);
         }
     }
 
     if (lexed) {
         puts(WHITE("\n*** Parsing ***"));
-        struct node root = parse(ranges, nranges);
+        struct node root = parse(tokens, ntokens);
 
         if (parse_success(root)) {
             puts(WHITE("\n*** Running ***"));
