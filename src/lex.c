@@ -187,7 +187,8 @@ TOKEN_DEFINE_1(tk_rbrc, "}");
 TOKEN_DEFINE_2(tk_cond, "if");
 TOKEN_DEFINE_4(tk_elif, "elif");
 TOKEN_DEFINE_4(tk_else, "else");
-TOKEN_DEFINE_5(tk_loop, "while");
+TOKEN_DEFINE_2(tk_dowh, "do");
+TOKEN_DEFINE_5(tk_whil, "while");
 TOKEN_DEFINE_1(tk_assn, "=");
 TOKEN_DEFINE_2(tk_equl, "==");
 TOKEN_DEFINE_2(tk_neql, "!=");
@@ -220,7 +221,8 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_cond,
     tk_elif,
     tk_else,
-    tk_loop,
+    tk_dowh,
+    tk_whil,
     tk_assn,
     tk_equl,
     tk_neql,

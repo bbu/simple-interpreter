@@ -57,55 +57,57 @@ struct rule {
     { .lhs = NT_##_lhs, .rhs = { no, t1, t2, t3, t4, t5, t6, t7, t8, } },
 
 static const struct rule grammar[] = {
-    r3(Unit, t(FBEG), m(Stmt), t(FEND)                   )
+    r3(Unit, t(FBEG), m(Stmt), t(FEND)                                     )
 
-    r1(Stmt, n(Assn)                                     )
-    r1(Stmt, n(Prnt)                                     )
-    r1(Stmt, n(Ctrl)                                     )
+    r1(Stmt, n(Assn)                                                       )
+    r1(Stmt, n(Prnt)                                                       )
+    r1(Stmt, n(Ctrl)                                                       )
 
-    r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)          )
+    r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)                            )
 
-    r3(Prnt, t(PRNT), n(Expr), t(SCOL)                   )
+    r3(Prnt, t(PRNT), n(Expr), t(SCOL)                                     )
 
-    r2(Ctrl, n(Cond), m(Elif)                            )
-    r3(Ctrl, n(Cond), m(Elif), n(Else)                   )
-    r1(Ctrl, n(Loop)                                     )
+    r2(Ctrl, n(Cond), m(Elif)                                              )
+    r3(Ctrl, n(Cond), m(Elif), n(Else)                                     )
+    r1(Ctrl, n(Dowh)                                                       )
+    r1(Ctrl, n(Whil)                                                       )
 
-    r5(Cond, t(COND), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
-    r5(Elif, t(ELIF), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
-    r4(Else, t(ELSE), t(LBRC), m(Stmt), t(RBRC)          )
+    r5(Cond, t(COND), n(Expr), t(LBRC), m(Stmt), t(RBRC)                   )
+    r5(Elif, t(ELIF), n(Expr), t(LBRC), m(Stmt), t(RBRC)                   )
+    r4(Else, t(ELSE), t(LBRC), m(Stmt), t(RBRC)                            )
 
-    r5(Loop, t(WHIL), n(Expr), t(LBRC), m(Stmt), t(RBRC) )
+    r7(Dowh, t(DOWH), t(LBRC), m(Stmt), t(RBRC), t(WHIL), n(Expr), t(SCOL) )
+    r5(Whil, t(WHIL), n(Expr), t(LBRC), m(Stmt), t(RBRC)                   )
 
-    r1(Atom, t(NAME)                                     )
-    r1(Atom, t(NMBR)                                     )
+    r1(Atom, t(NAME)                                                       )
+    r1(Atom, t(NMBR)                                                       )
 
-    r1(Expr, n(Atom)                                     )
-    r1(Expr, n(Pexp)                                     )
-    r1(Expr, n(Bexp)                                     )
-    r1(Expr, n(Uexp)                                     )
-    r1(Expr, n(Texp)                                     )
+    r1(Expr, n(Atom)                                                       )
+    r1(Expr, n(Pexp)                                                       )
+    r1(Expr, n(Bexp)                                                       )
+    r1(Expr, n(Uexp)                                                       )
+    r1(Expr, n(Texp)                                                       )
 
-    r3(Pexp, t(LPAR), n(Expr), t(RPAR)                   )
+    r3(Pexp, t(LPAR), n(Expr), t(RPAR)                                     )
 
-    r3(Bexp, n(Expr), t(EQUL), n(Expr)                   )
-    r3(Bexp, n(Expr), t(NEQL), n(Expr)                   )
-    r3(Bexp, n(Expr), t(LTHN), n(Expr)                   )
-    r3(Bexp, n(Expr), t(GTHN), n(Expr)                   )
-    r3(Bexp, n(Expr), t(LTEQ), n(Expr)                   )
-    r3(Bexp, n(Expr), t(GTEQ), n(Expr)                   )
-    r3(Bexp, n(Expr), t(CONJ), n(Expr)                   )
-    r3(Bexp, n(Expr), t(DISJ), n(Expr)                   )
-    r3(Bexp, n(Expr), t(PLUS), n(Expr)                   )
-    r3(Bexp, n(Expr), t(MINS), n(Expr)                   )
-    r3(Bexp, n(Expr), t(MULT), n(Expr)                   )
-    r3(Bexp, n(Expr), t(DIVD), n(Expr)                   )
+    r3(Bexp, n(Expr), t(EQUL), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(NEQL), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(LTHN), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(GTHN), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(LTEQ), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(GTEQ), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(CONJ), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(DISJ), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(PLUS), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(MINS), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(MULT), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(DIVD), n(Expr)                                     )
 
-    r2(Uexp, t(PLUS), n(Expr)                            )
-    r2(Uexp, t(MINS), n(Expr)                            )
-    r2(Uexp, t(NEGA), n(Expr)                            )
+    r2(Uexp, t(PLUS), n(Expr)                                              )
+    r2(Uexp, t(MINS), n(Expr)                                              )
+    r2(Uexp, t(NEGA), n(Expr)                                              )
 
-    r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr) )
+    r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr)                   )
 };
 
 #undef r1
@@ -148,7 +150,8 @@ static void print_stack(void)
         "Cond",
         "Elif",
         "Else",
-        "Loop",
+        "Dowh",
+        "Whil",
         "Atom",
         "Expr",
         "Pexp",

@@ -25,6 +25,7 @@ enum {
     TK_COND,
     TK_ELIF,
     TK_ELSE,
+    TK_DOWH,
     TK_WHIL,
     TK_ASSN,
     TK_EQUL,

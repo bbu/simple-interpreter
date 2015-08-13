@@ -128,11 +128,24 @@ static void run_ctrl(const struct node *const ctrl)
         }
     } break;
 
-    case NT_Loop: {
-        const struct node *loop = ctrl->children[0];
+    case NT_Dowh: {
+        const struct node *dowh = ctrl->children[0];
+        const struct node *expr = dowh->children[dowh->nchildren - 2];
 
-        while (eval_expr(loop->children[1])) {
-            const struct node *stmt = loop->children[3];
+        do {
+            const struct node *stmt = dowh->children[2];
+            
+            while (stmt->nchildren) {
+                run_stmt(stmt++);
+            }
+        } while (eval_expr(expr));
+    } break;
+
+    case NT_Whil: {
+        const struct node *whil = ctrl->children[0];
+
+        while (eval_expr(whil->children[1])) {
+            const struct node *stmt = whil->children[3];
 
             while (stmt->nchildren) {
                 run_stmt(stmt++);
