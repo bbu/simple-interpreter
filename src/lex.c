@@ -11,7 +11,7 @@ enum {
 
 typedef uint8_t sts_t;
 
-#define TR(st, tr) (state = (st), (STS_##tr))
+#define TR(st, tr) (*s = (st), (STS_##tr))
 #define REJECT TR(0, REJECT)
 
 #define IS_ALPHA(c)  (((c) >= 'a' && (c) <= 'z') || ((c) >= 'A' && (c) <= 'Z'))
@@ -20,11 +20,9 @@ typedef uint8_t sts_t;
 #define IS_WSPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\r' || (c) == '\n')
 
 #define TOKEN_DEFINE_1(token, str) \
-static sts_t token(const uint8_t c) \
+static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
-    static char state; \
-    \
-    switch (state) { \
+    switch (*s) { \
         case 0: return c == (str)[0] ? TR(1, ACCEPT) : REJECT; \
         case 1: return REJECT; \
         default: return -1; \
@@ -32,11 +30,9 @@ static sts_t token(const uint8_t c) \
 }
 
 #define TOKEN_DEFINE_2(token, str) \
-static sts_t token(const uint8_t c) \
+static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
-    static char state; \
-    \
-    switch (state) { \
+    switch (*s) { \
         case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
         case 1: return c == (str)[1] ? TR(2, ACCEPT) : REJECT; \
         case 2: return REJECT; \
@@ -45,11 +41,9 @@ static sts_t token(const uint8_t c) \
 }
 
 #define TOKEN_DEFINE_3(token, str) \
-static sts_t token(const uint8_t c) \
+static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
-    static char state; \
-    \
-    switch (state) { \
+    switch (*s) { \
         case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
         case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
         case 2: return c == (str)[2] ? TR(3, ACCEPT) : REJECT; \
@@ -59,11 +53,9 @@ static sts_t token(const uint8_t c) \
 }
 
 #define TOKEN_DEFINE_4(token, str) \
-static sts_t token(const uint8_t c) \
+static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
-    static char state; \
-    \
-    switch (state) { \
+    switch (*s) { \
         case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
         case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
         case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
@@ -74,11 +66,9 @@ static sts_t token(const uint8_t c) \
 }
 
 #define TOKEN_DEFINE_5(token, str) \
-static sts_t token(const uint8_t c) \
+static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
-    static char state; \
-    \
-    switch (state) { \
+    switch (*s) { \
         case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
         case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
         case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
@@ -89,14 +79,14 @@ static sts_t token(const uint8_t c) \
     } \
 }
 
-static sts_t tk_name(const uint8_t c)
+static sts_t tk_name(const uint8_t c, uint8_t *const s)
 {
-    static enum {
+    enum {
         tk_name_begin,
         tk_name_accum,
-    } state;
+    };
 
-    switch (state) {
+    switch (*s) {
     case tk_name_begin:
         return IS_ALPHA(c) || (c == '_') ? TR(tk_name_accum, ACCEPT) : REJECT;
 
@@ -108,19 +98,19 @@ static sts_t tk_name(const uint8_t c)
     return 0;
 }
 
-static sts_t tk_nmbr(const uint8_t c)
+static sts_t tk_nmbr(const uint8_t c, uint8_t *const s)
 {
     return IS_DIGIT(c) ? STS_ACCEPT : STS_REJECT;
 }
 
-static sts_t tk_wspc(const uint8_t c)
+static sts_t tk_wspc(const uint8_t c, uint8_t *const s)
 {
-    static enum {
+    enum {
         tk_wspc_begin,
         tk_wspc_accum,
-    } state;
+    };
 
-    switch (state) {
+    switch (*s) {
     case tk_wspc_begin:
         return IS_WSPACE(c) ? TR(tk_wspc_accum, ACCEPT) : REJECT;
 
@@ -132,16 +122,16 @@ static sts_t tk_wspc(const uint8_t c)
     return 0;
 }
 
-static sts_t tk_lcom(const uint8_t c)
+static sts_t tk_lcom(const uint8_t c, uint8_t *const s)
 {
-    static enum {
+    enum {
         tk_lcom_begin,
         tk_lcom_first_slash,
         tk_lcom_accum,
         tk_lcom_end
-    } state;
+    };
 
-    switch (state) {
+    switch (*s) {
     case tk_lcom_begin:
         return c == '/' ? TR(tk_lcom_first_slash, HUNGRY) : REJECT;
 
@@ -159,17 +149,17 @@ static sts_t tk_lcom(const uint8_t c)
     return 0;
 }
 
-static sts_t tk_bcom(const uint8_t c)
+static sts_t tk_bcom(const uint8_t c, uint8_t *const s)
 {
-    static enum {
+    enum {
         tk_bcom_begin,
         tk_bcom_open_slash,
         tk_bcom_accum,
         tk_bcom_close_star,
         tk_bcom_end
-    } state;
+    };
 
-    switch (state) {
+    switch (*s) {
     case tk_bcom_begin:
         return c == '/' ? TR(tk_bcom_open_slash, HUNGRY) : REJECT;
 
@@ -217,7 +207,7 @@ TOKEN_DEFINE_1(tk_scol, ";");
 TOKEN_DEFINE_1(tk_ques, "?");
 TOKEN_DEFINE_1(tk_coln, ":");
 
-static sts_t (*const tokens[TK_COUNT])(const uint8_t) = {
+static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_name,
     tk_nmbr,
     tk_wspc,
@@ -283,6 +273,8 @@ int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
     } statuses[TK_COUNT] = {
         [0 ... TK_COUNT - 1] = { STS_HUNGRY, STS_REJECT }
     };
+    
+    uint8_t states[TK_COUNT] = {0};
 
     const uint8_t *prefix_beg = input, *prefix_end = input;
     tk_t accepted_token;
@@ -294,14 +286,17 @@ int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
             return LEX_NOMEM; \
         }
 
+    #define foreach_token \
+        for (tk_t token = 0; token < TK_COUNT; ++token)
+
     PUSH_OR_NOMEM(TK_FBEG, NULL, NULL);
 
     while (*prefix_end) {
         int did_accept = 0;
         
-        for (tk_t token = 0; token < TK_COUNT; ++token) {
+        foreach_token {
             if (statuses[token].prev != STS_REJECT) {
-                statuses[token].curr = tokens[token](*prefix_end);
+                statuses[token].curr = tokens[token](*prefix_end, &states[token]);
             }
 
             if (statuses[token].curr != STS_REJECT) {
@@ -312,7 +307,7 @@ int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
         if (!did_accept) {
             accepted_token = TK_COUNT;
 
-            for (tk_t token = 0; token < TK_COUNT; ++token) {
+            foreach_token {
                 if (statuses[token].prev == STS_ACCEPT) {
                     accepted_token = token;
                 }
@@ -331,7 +326,7 @@ int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
         } else {
             prefix_end++;
 
-            for (tk_t token = 0; token < TK_COUNT; ++token) {
+            foreach_token {
                 statuses[token].prev = statuses[token].curr;
             }
         }
@@ -339,7 +334,7 @@ int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
 
     accepted_token = TK_COUNT;
 
-    for (tk_t token = 0; token < TK_COUNT; ++token) {
+    foreach_token {
         if (statuses[token].curr == STS_ACCEPT) {
             accepted_token = token;
         }

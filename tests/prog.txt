@@ -1,5 +1,8 @@
 myvar = 5;
 
+asdasd = 423 || 323 && 331;
+print asdasd;
+
 while (myvar < 30) {
     myvar = myvar + 2;
     
