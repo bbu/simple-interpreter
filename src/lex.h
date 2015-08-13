@@ -4,13 +4,13 @@
 #include <stddef.h>
 
 #define COLOURED(s, b, c) "\033[" #b ";" #c "m" s "\033[0m"
-#define GRAY(s)        COLOURED(s, 0, 37)
-#define RED(s)         COLOURED(s, 1, 31)
-#define GREEN(s)       COLOURED(s, 1, 32)
-#define YELLOW(s)      COLOURED(s, 1, 33)
-#define ORANGE(s)      COLOURED(s, 1, 34)
-#define CYAN(s)        COLOURED(s, 1, 36)
-#define WHITE(s)       COLOURED(s, 1, 37)
+#define GRAY(s)           COLOURED(s, 0, 37)
+#define RED(s)            COLOURED(s, 1, 31)
+#define GREEN(s)          COLOURED(s, 1, 32)
+#define YELLOW(s)         COLOURED(s, 1, 33)
+#define ORANGE(s)         COLOURED(s, 1, 34)
+#define CYAN(s)           COLOURED(s, 1, 36)
+#define WHITE(s)          COLOURED(s, 1, 37)
 
 enum {
     TK_NAME,
@@ -57,4 +57,8 @@ struct token {
     tk_t tk;
 };
 
-int lex(const uint8_t *input, struct token *ranges, size_t *nranges);
+int lex(const uint8_t *input, struct token **ranges, size_t *nranges);
+
+#define LEX_OK 0
+#define LEX_NOMEM 1
+#define LEX_UNKNOWN_TOKEN 2

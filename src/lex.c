@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "lex.h"
 
 enum {
@@ -250,7 +253,32 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t) = {
     tk_coln,
 };
 
-int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
+static int push_token(struct token **ranges, size_t *nranges, size_t *allocated,
+    tk_t token, const uint8_t *beg, const uint8_t *end)
+{
+    if (*nranges + 1 > *allocated) {
+        *allocated = (*allocated ?: 1) * 8;
+        struct token *tmp = realloc(*ranges, *allocated * sizeof(struct token));
+
+        if (tmp == NULL) {
+            free(*ranges);
+            *ranges = NULL;
+            return 1;
+        } else {
+            *ranges = tmp;                
+        }
+    }
+
+    (*ranges)[(*nranges)++] = (struct token) {
+        .beg = beg, 
+        .end = end, 
+        .tk = token
+    };
+
+    return 0;
+}
+
+int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
 {
     static struct {
         sts_t prev, curr;
@@ -260,7 +288,15 @@ int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
 
     const uint8_t *prefix_beg = input, *prefix_end = input;
     tk_t accepted_token;
-    ranges[*nranges = 1, 0].tk = TK_FBEG;
+    size_t allocated = 0;
+    *ranges = NULL, *nranges = 0;
+    
+    #define PUSH_OR_NOMEM(tk, beg, end) \
+        if (push_token(ranges, nranges, &allocated, (tk), (beg), (end))) { \
+            return LEX_NOMEM; \
+        }
+
+    PUSH_OR_NOMEM(TK_FBEG, NULL, NULL);
 
     while (*prefix_end) {
         int did_accept = 0;
@@ -287,14 +323,10 @@ int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
                 statuses[token].curr = STS_REJECT;
             }
 
-            ranges[(*nranges)++] = (struct token) {
-                .beg = prefix_beg, 
-                .end = prefix_end, 
-                .tk = accepted_token
-            };
+            PUSH_OR_NOMEM(accepted_token, prefix_beg, prefix_end);
 
             if (accepted_token == TK_COUNT) {
-                return 0;
+                return LEX_UNKNOWN_TOKEN;
             } else {
                 prefix_beg = prefix_end;
             }
@@ -318,16 +350,12 @@ int lex(const uint8_t *input, struct token *ranges, size_t *nranges)
         statuses[token].curr = STS_REJECT;
     }
 
-    ranges[(*nranges)++] = (struct token) {
-        .beg = prefix_beg, 
-        .end = prefix_end, 
-        .tk = accepted_token
-    };
+    PUSH_OR_NOMEM(accepted_token, prefix_beg, prefix_end);
 
     if (accepted_token == TK_COUNT) {
-        return 0;
+        return LEX_UNKNOWN_TOKEN;
     }
 
-    ranges[(*nranges)++].tk = TK_FEND;
-    return 1;
+    PUSH_OR_NOMEM(TK_FEND, NULL, NULL);
+    return LEX_OK;
 }

@@ -15,14 +15,22 @@ static int eval_bexp(const struct node *);
 static int eval_uexp(const struct node *);
 static int eval_texp(const struct node *);
 
-void run(const struct node *unit)
+#define VARSTORE_CAPACITY 128
+/*
+static struct {
+    const uint8_t *beg, *end;
+    int value;
+} varstore[VARSTORE_CAPACITY];
+*/
+
+void run(const struct node *const unit)
 {
     for (size_t stmt_idx = 1; stmt_idx < unit->nchildren - 1; ++stmt_idx) {
         run_stmt(unit->children[stmt_idx]);
     }
 }
 
-static void run_stmt(const struct node *stmt)
+static void run_stmt(const struct node *const stmt)
 {
     switch (stmt->children[0]->nt) {
     case NT_Assn:
@@ -46,12 +54,12 @@ static void run_stmt(const struct node *stmt)
     }
 }
 
-static void run_assn(const struct node *assn)
+static void run_assn(const struct node *const assn)
 {
     printf("assign\n");
 }
 
-static void run_read(const struct node *read)
+static void run_read(const struct node *const read)
 {
     int input;
 
@@ -59,12 +67,12 @@ static void run_read(const struct node *read)
     scanf("%d", &input);
 }
 
-static void run_prnt(const struct node *prnt)
+static void run_prnt(const struct node *const prnt)
 {
     printf("print: %d\n", eval_expr(prnt->children[1]));
 }
 
-static void run_ctrl(const struct node *ctrl)
+static void run_ctrl(const struct node *const ctrl)
 {
     switch (ctrl->children[0]->nt) {
     case NT_Cond: {
@@ -121,7 +129,7 @@ static void run_ctrl(const struct node *ctrl)
     }
 }
 
-static int eval_atom(const struct node *atom)
+static int eval_atom(const struct node *const atom)
 {
     switch (atom->children[0]->token->tk) {
     case TK_NAME:
@@ -144,7 +152,7 @@ static int eval_atom(const struct node *atom)
     }
 }
 
-static int eval_expr(const struct node *expr)
+static int eval_expr(const struct node *const expr)
 {
     switch (expr->children[0]->nt) {
     case NT_Atom:
@@ -167,12 +175,12 @@ static int eval_expr(const struct node *expr)
     }
 }
 
-static int eval_pexp(const struct node *pexp)
+static int eval_pexp(const struct node *const pexp)
 {
     return eval_expr(pexp->children[1]);
 }
 
-static int eval_bexp(const struct node *bexp)
+static int eval_bexp(const struct node *const bexp)
 {
     switch (bexp->children[1]->token->tk) {
     case TK_PLUS:
@@ -216,7 +224,7 @@ static int eval_bexp(const struct node *bexp)
     }
 }
 
-static int eval_uexp(const struct node *uexp)
+static int eval_uexp(const struct node *const uexp)
 {
     switch (uexp->children[0]->token->tk) {
     case TK_PLUS:
@@ -233,7 +241,7 @@ static int eval_uexp(const struct node *uexp)
     }
 }
 
-static int eval_texp(const struct node *texp)
+static int eval_texp(const struct node *const texp)
 {
     return eval_expr(texp->children[0]) ? 
         eval_expr(texp->children[2]) : eval_expr(texp->children[4]);

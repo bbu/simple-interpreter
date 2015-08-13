@@ -41,6 +41,15 @@ struct node {
 };
 
 struct node parse(const struct token *tokens, size_t ntokens);
-void destroy_tree(struct node root);
 
-#define parse_success(root) ((root).nchildren)
+#define PARSE_OK 0
+#define PARSE_REJECT 1
+#define PARSE_NOMEM 2
+#define PARSE_OVERFLOW 3
+
+#define parse_error(root) ({ \
+    typeof(root) root_once = (root); \
+    root_once.nchildren ? PARSE_OK : root_once.token->tk; \
+})
+
+void destroy_tree(struct node root);

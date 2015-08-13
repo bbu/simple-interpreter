@@ -64,7 +64,7 @@ static const struct rule grammar[] = {
     r1(Stmt, n(Prnt)                                     )
     r1(Stmt, n(Ctrl)                                     )
 
-    r4(Assn, n(Expr), t(ASSN), n(Expr), t(SCOL)          )
+    r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)          )
 
     r3(Read, t(READ), n(Expr), t(SCOL)                   )
 
@@ -142,7 +142,7 @@ static const uint8_t precedence[TK_DIVD - TK_EQUL + 1] = {
 
 static void print_stack(void)
 {
-    static const char *nts[NT_COUNT] = {
+    static const char *const nts[NT_COUNT] = {
         "Unit",
         "Stmt",
         "Assn",
@@ -177,7 +177,7 @@ static void print_stack(void)
     puts("");
 }
 
-static void destroy_node(struct node *node)
+static void destroy_node(struct node *const node)
 {
     if (node->nchildren) {
         for (size_t i = 0; i < node->nchildren; ++i) {
@@ -198,7 +198,9 @@ static void destroy_stack(void)
     st_size = 0;
 }
 
-static int term_eq_node(const struct term *term, const struct node *node)
+static int term_eq_node(
+    const struct term *const term,
+    const struct node *const node)
 {
     int node_is_leaf = node->nchildren == 0;
 
@@ -213,7 +215,7 @@ static int term_eq_node(const struct term *term, const struct node *node)
     return 0;
 }
 
-static size_t match_rule(const struct rule *rule, size_t *at)
+static size_t match_rule(const struct rule *const rule, size_t *const at)
 {
     const struct term *prev = NULL;
     const struct term *term = &rule->rhs[RULE_RHS_LAST];
@@ -241,12 +243,70 @@ static size_t match_rule(const struct rule *rule, size_t *at)
         (*at = st_idx + 1, reduction_size) : 0;
 }
 
-static inline void shift(const struct token *token)
+static inline int shift(const struct token *const token)
 {
+    if (st_size > STACK_MAX_DEPTH - 1) {
+        return 1;
+    }
+
     stack[st_size++] = (struct node) {
         .nchildren = 0,
         .token = token,
     };
+
+    return 0;
+}
+
+static inline int should_shift_pre(
+    const struct rule *const rule, 
+    const struct token *const tokens,
+    size_t *const token_idx)
+{
+    while (SKIP_TOKEN(tokens[*token_idx].tk)) {
+        ++(*token_idx);
+    }
+
+    if (rule->lhs == NT_Bexp) {
+        /* check whether the operator ahead has a lower precedence */
+        const struct token *ahead = &tokens[*token_idx];
+
+        if (ahead->tk >= TK_EQUL && ahead->tk <= TK_DIVD) {
+            uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
+            uint8_t p2 = precedence[ahead->tk - TK_EQUL];
+            
+            if (p2 < p1) {
+                return 1;
+            }
+        }
+    } else if (rule->lhs == NT_Atom && rule->rhs[RULE_RHS_LAST].tk == TK_NAME) {
+        /* do not allow the left side of an assignment to escalate to Expr */
+        if (tokens[*token_idx].tk == TK_ASSN) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static inline int should_shift_post(
+    const struct rule *const rule,
+    const struct token *const tokens, 
+    size_t *const token_idx)
+{
+    while (SKIP_TOKEN(tokens[*token_idx].tk)) {
+        ++(*token_idx);
+    }
+
+    if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
+        /* dirty hack to parse if-elif-else chains */
+        const struct token *ahead = &tokens[*token_idx];
+
+        if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 static int reduce(const struct rule *rule, const size_t at, const size_t size)
@@ -283,9 +343,9 @@ static int reduce(const struct rule *rule, const size_t at, const size_t size)
 struct node parse(const struct token *const tokens, const size_t ntokens)
 {
     static const struct token 
-        reject       = { .tk = TK_COUNT + 0 },
-        nomem        = { .tk = TK_COUNT + 1 },
-        overflow     = { .tk = TK_COUNT + 2 };
+        reject       = { .tk = PARSE_REJECT },
+        nomem        = { .tk = PARSE_NOMEM },
+        overflow     = { .tk = PARSE_OVERFLOW };
     
     static const struct node
         err_reject   = { .nchildren = 0, .token = &reject },
@@ -300,12 +360,11 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
             continue;
         }
 
-        if (st_size > STACK_MAX_DEPTH - 1) {
+        if (shift(&tokens[token_idx++])) {
             puts(RED("Stack depth exceeded!"));
             return destroy_stack(), err_overflow;
         }
 
-        shift(&tokens[token_idx++]);
         printf(CYAN("Shift: ")), print_stack();
         
         try_reduce_again:;
@@ -315,46 +374,25 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
             size_t reduction_at, reduction_size;
 
             if ((reduction_size = match_rule(rule, &reduction_at))) {
-                /* check whether the operator ahead has a lower precedence */
-                if (rule->lhs == NT_Bexp) {
-                    while (SKIP_TOKEN(tokens[token_idx].tk)) {
-                        ++token_idx;
+                int do_shift = should_shift_pre(rule, tokens, &token_idx);
+
+                if (!do_shift) {
+                    if (reduce(rule, reduction_at, reduction_size)) {
+                        puts(RED("Out of memory!"));
+                        return destroy_stack(), err_nomem;
                     }
 
-                    const struct token *ahead = &tokens[token_idx];
-
-                    if (ahead->tk >= TK_EQUL && ahead->tk <= TK_DIVD) {
-                        uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
-                        uint8_t p2 = precedence[ahead->tk - TK_EQUL];
-                        
-                        if (p2 < p1) {
-                            shift(&tokens[token_idx++]);
-                            printf(CYAN("Shift: ")), print_stack();
-                            goto try_reduce_again;
-                        }
-                    }
-                }
-            
-                if (reduce(rule, reduction_at, reduction_size)) {
-                    puts(RED("Out of memory!"));
-                    return destroy_stack(), err_nomem;
+                    ptrdiff_t rule_number = rule - grammar + 1;
+                    printf(ORANGE("Red%02td: "), rule_number), print_stack();
                 }
 
-                ptrdiff_t rule_number = rule - grammar + 1;
-                printf(ORANGE("Red%02td: "), rule_number), print_stack();
-
-                /* dirty hack to parse if-elif-else chains */
-                if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
-                    while (SKIP_TOKEN(tokens[token_idx].tk)) {
-                        ++token_idx;
+                if (do_shift || should_shift_post(rule, tokens, &token_idx)) {
+                    if (shift(&tokens[token_idx++])) {
+                        puts(RED("Stack depth exceeded!"));
+                        return destroy_stack(), err_overflow;
                     }
 
-                    const struct token *ahead = &tokens[token_idx];
-
-                    if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
-                        shift(&tokens[token_idx++]);
-                        printf(CYAN("Shift: ")), print_stack();
-                    }
+                    printf(CYAN("Shift: ")), print_stack();
                 }
 
                 goto try_reduce_again;
