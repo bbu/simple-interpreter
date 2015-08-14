@@ -38,6 +38,10 @@ The interpreter is really straightforward. It starts from the top of the parse t
 * A ternary expression (integers only):
   * `Expr ? Expr : Expr`
 
+* Line and block comments:
+  * `// line comment`
+  * `/* block comment */`
+
 ## Sample Output
 You start the interpreter by specifying the file containing the code.
 
