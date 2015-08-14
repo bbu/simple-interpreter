@@ -1,23 +1,30 @@
-# The Language
+## The Language
 
 * Control-flow statements:
   * `if (Expression) { Statements; } elif (Expression) { Statements; } else { Statements; }`
   * `while (Expression) { Statements; }` 
   * `do { Statements; } while (Expression);`
+
 * Variable assignment:
   * `Name = Expression;`
+
 * Printing to standard output:
   * `print "Placeholder: " Expression;`
   * `print Expression;`
+
 * Parenthesized expressions:
   * `(Expression)`
+
 * Binary expressions:
   * `Expression OP Expression`, where `OP` can be `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&` or `||`
+
 * Unary expressions:
   * `OP Expression`, where `OP` can be `-`, `+` or `!`
+
 * A ternary expression:
   * `Expression ? Expression : Expression`
-# Sample Output
+
+## Sample Output
 You start the interpreter by specifying the file containing the code.
 
 Once the file is opened and mapped into memory successfully, the lexer starts. The tokens will be written to standard output as they appear in the file, in alternating colors (green and yellow), so that you can clearly see where each token starts and ends.
