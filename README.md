@@ -1,3 +1,17 @@
+## What is this?
+
+This is a hackable and extensible lexer, parser and an interpreter for a minimalistic, imperative, C-like language. It can also be used as an educational tool for understanding lexing and parsing.
+
+## How it works?
+
+The lexer produces a list of tokens from the input. It produces each token by consuming a character from the input and then asking each of the token functions whether they accept it. Each token function has an internal state and can return any of `STS_ACCEPT`, `STS_REJECT` or `STS_HUNGRY` on each character consumed. The lexer reads in characters until all of the functions return `STS_REJECT`, and then looks back which is the accepted token. Essentially, this is a "maximal munch" algorithm.
+
+The parser takes the list of tokens and produces a tree. It does that by continously shifting tokens off the input to the parse stack and then reducing the shortest matching suffix of the stack to a non-terminal, according to the rules of the grammar. The grammar is defined as a static array of structs, where each struct is a rule. When a rule matches a suffix of the stack, a reduction is made. The reduction essentially creates a single level of child nodes (the symbols that matched the rule) and they get parented by a new non-terminal symbol on the stack (the left-hand side of the matching rule). In effect, this is a shift-reduce, bottom-up parser.
+
+Because the parser has no state and decision tables, a few additional hacks are implemented in order to support operator precedence and if-elif-else chains.
+
+The interpreter is really straightforward. It starts from the top of the parse tree and walks down through the child nodes, executing the statements and evaluating the expressions.
+
 ## The Language
 
 * Control-flow statements (the curly braces are mandatory):
@@ -5,23 +19,23 @@
   * `while (Expr) { N✕Stmt }` 
   * `do { N✕Stmt } while (Expr);`
 
-* Variable assignment:
+* Variable assignment (integers only):
   * `Name = Expr;`
 
-* Printing to standard output:
+* Printing to standard output (integers only):
   * `print "Placeholder: " Expr;`
   * `print Expr;`
 
-* Parenthesized expressions:
+* Parenthesized expressions (integers only):
   * `(Expr)`
 
-* Binary expressions:
-  * `Expr OP Expr`, where `OP` can be `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&` or `||`
+* Binary expressions (between two integers):
+  * `Expr OP Expr`, where `OP` is `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&` or `||`
 
-* Unary expressions:
-  * `OP Expr`, where `OP` can be `-`, `+` or `!`
+* Unary expressions (integers only):
+  * `OP Expr`, where `OP` is `-`, `+` or `!`
 
-* A ternary expression:
+* A ternary expression (integers only):
   * `Expr ? Expr : Expr`
 
 ## Sample Output
