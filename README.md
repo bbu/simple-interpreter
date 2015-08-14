@@ -1,6 +1,6 @@
 ## What is this?
 
-This is a hackable and extensible lexer, parser and an interpreter for a minimalistic, imperative, C-like language. It can also be used as an educational tool for understanding lexing and parsing.
+This is a hackable and extensible lexer, parser and interpreter for a minimalistic, imperative, C-like language. It can also be used as an educational tool for understanding lexing and parsing.
 
 ## How it works?
 
