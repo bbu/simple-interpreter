@@ -85,7 +85,17 @@ static void run_assn(const struct node *const assn)
 
 static void run_prnt(const struct node *const prnt)
 {
-    printf("print: %d\n", eval_expr(prnt->children[1]));
+    if (prnt->nchildren == 3) {
+        printf("%d\n", eval_expr(prnt->children[1]));
+    } else if (prnt->nchildren == 4) {
+        struct node *strl = prnt->children[1];
+
+        const uint8_t *beg = strl->token->beg + 1;
+        const uint8_t *end = strl->token->end - 1;
+        ptrdiff_t len = end - beg;
+        
+        printf("%.*s%d\n", (int) len, beg, eval_expr(prnt->children[2]));
+    }
 }
 
 static void run_ctrl(const struct node *const ctrl)
@@ -233,8 +243,11 @@ static int eval_bexp(const struct node *const bexp)
     case TK_MULT:
         return eval_expr(bexp->children[0]) * eval_expr(bexp->children[2]);
 
-    case TK_DIVD:
+    case TK_DIVI:
         return eval_expr(bexp->children[0]) / eval_expr(bexp->children[2]);
+
+    case TK_MODU:
+        return eval_expr(bexp->children[0]) % eval_expr(bexp->children[2]);
 
     case TK_EQUL:
         return eval_expr(bexp->children[0]) == eval_expr(bexp->children[2]);

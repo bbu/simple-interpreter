@@ -15,6 +15,7 @@
 enum {
     TK_NAME,
     TK_NMBR,
+    TK_STRL,
     TK_WSPC,
     TK_LCOM,
     TK_BCOM,
@@ -39,7 +40,8 @@ enum {
     TK_PLUS,
     TK_MINS,
     TK_MULT,
-    TK_DIVD,
+    TK_DIVI,
+    TK_MODU,
     TK_NEGA,
     TK_PRNT,
     TK_SCOL,

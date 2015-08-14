@@ -66,6 +66,7 @@ static const struct rule grammar[] = {
     r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)                            )
 
     r3(Prnt, t(PRNT), n(Expr), t(SCOL)                                     )
+    r4(Prnt, t(PRNT), t(STRL), n(Expr), t(SCOL)                            )
 
     r2(Ctrl, n(Cond), m(Elif)                                              )
     r3(Ctrl, n(Cond), m(Elif), n(Else)                                     )
@@ -101,7 +102,8 @@ static const struct rule grammar[] = {
     r3(Bexp, n(Expr), t(PLUS), n(Expr)                                     )
     r3(Bexp, n(Expr), t(MINS), n(Expr)                                     )
     r3(Bexp, n(Expr), t(MULT), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(DIVD), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(DIVI), n(Expr)                                     )
+    r3(Bexp, n(Expr), t(MODU), n(Expr)                                     )
 
     r2(Uexp, t(PLUS), n(Expr)                                              )
     r2(Uexp, t(MINS), n(Expr)                                              )
@@ -124,7 +126,7 @@ static const struct rule grammar[] = {
 #undef t
 #undef no
 
-static const uint8_t precedence[TK_DIVD - TK_EQUL + 1] = {
+static const uint8_t precedence[TK_MODU - TK_EQUL + 1] = {
     7,
     7,
     6,
@@ -135,6 +137,7 @@ static const uint8_t precedence[TK_DIVD - TK_EQUL + 1] = {
     12,
     4,
     4,
+    3,
     3,
     3,
 };
@@ -269,7 +272,7 @@ static inline int should_shift_pre(
         /* check whether the operator ahead has a lower precedence */
         const struct token *ahead = &tokens[*token_idx];
 
-        if (ahead->tk >= TK_EQUL && ahead->tk <= TK_DIVD) {
+        if (ahead->tk >= TK_EQUL && ahead->tk <= TK_MODU) {
             uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
             uint8_t p2 = precedence[ahead->tk - TK_EQUL];
             

@@ -103,6 +103,29 @@ static sts_t tk_nmbr(const uint8_t c, uint8_t *const s)
     return IS_DIGIT(c) ? STS_ACCEPT : STS_REJECT;
 }
 
+static sts_t tk_strl(const uint8_t c, uint8_t *const s)
+{
+    enum {
+        tk_strl_begin,
+        tk_strl_accum,
+        tk_strl_end,
+    };
+
+    switch (*s) {
+    case tk_strl_begin:
+        return c == '"' ? TR(tk_strl_accum, HUNGRY) : REJECT;
+
+    case tk_strl_accum:
+        return c != '"' ? STS_HUNGRY : TR(tk_strl_end, ACCEPT);
+        
+    case tk_strl_end:
+        return REJECT;
+    }
+
+    /* unreachable, but keeps the compiler happy */
+    return 0;
+}
+
 static sts_t tk_wspc(const uint8_t c, uint8_t *const s)
 {
     enum {
@@ -201,7 +224,8 @@ TOKEN_DEFINE_2(tk_disj, "||");
 TOKEN_DEFINE_1(tk_plus, "+");
 TOKEN_DEFINE_1(tk_mins, "-");
 TOKEN_DEFINE_1(tk_mult, "*");
-TOKEN_DEFINE_1(tk_divd, "/");
+TOKEN_DEFINE_1(tk_divi, "/");
+TOKEN_DEFINE_1(tk_modu, "%");
 TOKEN_DEFINE_1(tk_nega, "!");
 TOKEN_DEFINE_5(tk_prnt, "print");
 TOKEN_DEFINE_1(tk_scol, ";");
@@ -211,6 +235,7 @@ TOKEN_DEFINE_1(tk_coln, ":");
 static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_name,
     tk_nmbr,
+    tk_strl,
     tk_wspc,
     tk_lcom,
     tk_bcom,
@@ -235,7 +260,8 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_plus,
     tk_mins,
     tk_mult,
-    tk_divd,
+    tk_divi,
+    tk_modu,
     tk_nega,
     tk_prnt,
     tk_scol,
@@ -353,4 +379,7 @@ int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
 
     PUSH_OR_NOMEM(TK_FEND, NULL, NULL);
     return LEX_OK;
+    
+    #undef PUSH_OR_NOMEM
+    #undef foreach_token
 }
