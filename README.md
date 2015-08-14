@@ -1,28 +1,28 @@
 ## The Language
 
-* Control-flow statements:
-  * `if (Expression) { Statements; } elif (Expression) { Statements; } else { Statements; }`
-  * `while (Expression) { Statements; }` 
-  * `do { Statements; } while (Expression);`
+* Control-flow statements (the curly braces are mandatory):
+  * `if (Expr) { N✕Stmt } elif (Expr) { N✕Stmt } else { N✕Stmt }`
+  * `while (Expr) { N✕Stmt }` 
+  * `do { N✕Stmt } while (Expr);`
 
 * Variable assignment:
-  * `Name = Expression;`
+  * `Name = Expr;`
 
 * Printing to standard output:
-  * `print "Placeholder: " Expression;`
-  * `print Expression;`
+  * `print "Placeholder: " Expr;`
+  * `print Expr;`
 
 * Parenthesized expressions:
-  * `(Expression)`
+  * `(Expr)`
 
 * Binary expressions:
-  * `Expression OP Expression`, where `OP` can be `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&` or `||`
+  * `Expr OP Expr`, where `OP` can be `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&` or `||`
 
 * Unary expressions:
-  * `OP Expression`, where `OP` can be `-`, `+` or `!`
+  * `OP Expr`, where `OP` can be `-`, `+` or `!`
 
 * A ternary expression:
-  * `Expression ? Expression : Expression`
+  * `Expr ? Expr : Expr`
 
 ## Sample Output
 You start the interpreter by specifying the file containing the code.
