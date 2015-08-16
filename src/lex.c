@@ -203,36 +203,36 @@ static sts_t tk_bcom(const uint8_t c, uint8_t *const s)
     return 0;
 }
 
-TOKEN_DEFINE_1(tk_lpar, "(");
-TOKEN_DEFINE_1(tk_rpar, ")");
-TOKEN_DEFINE_1(tk_lbra, "[");
-TOKEN_DEFINE_1(tk_rbra, "]");
-TOKEN_DEFINE_1(tk_lbrc, "{");
-TOKEN_DEFINE_1(tk_rbrc, "}");
-TOKEN_DEFINE_2(tk_cond, "if");
-TOKEN_DEFINE_4(tk_elif, "elif");
-TOKEN_DEFINE_4(tk_else, "else");
-TOKEN_DEFINE_2(tk_dowh, "do");
-TOKEN_DEFINE_5(tk_whil, "while");
-TOKEN_DEFINE_1(tk_assn, "=");
-TOKEN_DEFINE_2(tk_equl, "==");
-TOKEN_DEFINE_2(tk_neql, "!=");
-TOKEN_DEFINE_1(tk_lthn, "<");
-TOKEN_DEFINE_1(tk_gthn, ">");
-TOKEN_DEFINE_2(tk_lteq, "<=");
-TOKEN_DEFINE_2(tk_gteq, ">=");
-TOKEN_DEFINE_2(tk_conj, "&&");
-TOKEN_DEFINE_2(tk_disj, "||");
-TOKEN_DEFINE_1(tk_plus, "+");
-TOKEN_DEFINE_1(tk_mins, "-");
-TOKEN_DEFINE_1(tk_mult, "*");
-TOKEN_DEFINE_1(tk_divi, "/");
-TOKEN_DEFINE_1(tk_modu, "%");
-TOKEN_DEFINE_1(tk_nega, "!");
-TOKEN_DEFINE_5(tk_prnt, "print");
-TOKEN_DEFINE_1(tk_scol, ";");
-TOKEN_DEFINE_1(tk_ques, "?");
-TOKEN_DEFINE_1(tk_coln, ":");
+TOKEN_DEFINE_1(tk_lpar, "(")
+TOKEN_DEFINE_1(tk_rpar, ")")
+TOKEN_DEFINE_1(tk_lbra, "[")
+TOKEN_DEFINE_1(tk_rbra, "]")
+TOKEN_DEFINE_1(tk_lbrc, "{")
+TOKEN_DEFINE_1(tk_rbrc, "}")
+TOKEN_DEFINE_2(tk_cond, "if")
+TOKEN_DEFINE_4(tk_elif, "elif")
+TOKEN_DEFINE_4(tk_else, "else")
+TOKEN_DEFINE_2(tk_dowh, "do")
+TOKEN_DEFINE_5(tk_whil, "while")
+TOKEN_DEFINE_1(tk_assn, "=")
+TOKEN_DEFINE_2(tk_equl, "==")
+TOKEN_DEFINE_2(tk_neql, "!=")
+TOKEN_DEFINE_1(tk_lthn, "<")
+TOKEN_DEFINE_1(tk_gthn, ">")
+TOKEN_DEFINE_2(tk_lteq, "<=")
+TOKEN_DEFINE_2(tk_gteq, ">=")
+TOKEN_DEFINE_2(tk_conj, "&&")
+TOKEN_DEFINE_2(tk_disj, "||")
+TOKEN_DEFINE_1(tk_plus, "+")
+TOKEN_DEFINE_1(tk_mins, "-")
+TOKEN_DEFINE_1(tk_mult, "*")
+TOKEN_DEFINE_1(tk_divi, "/")
+TOKEN_DEFINE_1(tk_modu, "%")
+TOKEN_DEFINE_1(tk_nega, "!")
+TOKEN_DEFINE_5(tk_prnt, "print")
+TOKEN_DEFINE_1(tk_scol, ";")
+TOKEN_DEFINE_1(tk_ques, "?")
+TOKEN_DEFINE_1(tk_coln, ":")
 
 static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_name,

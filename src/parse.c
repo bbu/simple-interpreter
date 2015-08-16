@@ -376,13 +376,13 @@ static int reduce(const struct rule *const rule,
 struct node parse(const struct token *const tokens, const size_t ntokens)
 {
     static const struct token 
-        reject       = { .tk = PARSE_REJECT },
-        nomem        = { .tk = PARSE_NOMEM },
+        reject       = { .tk = PARSE_REJECT   },
+        nomem        = { .tk = PARSE_NOMEM    },
         overflow     = { .tk = PARSE_OVERFLOW };
     
     static const struct node
-        err_reject   = { .nchildren = 0, .token = &reject },
-        err_nomem    = { .nchildren = 0, .token = &nomem },
+        err_reject   = { .nchildren = 0, .token = &reject   },
+        err_nomem    = { .nchildren = 0, .token = &nomem    },
         err_overflow = { .nchildren = 0, .token = &overflow };
 
     stack.size = 0;
