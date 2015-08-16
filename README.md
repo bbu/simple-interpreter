@@ -21,6 +21,7 @@ The interpreter is really straightforward. It starts from the top of the parse t
 
 * Variable assignment (integers only):
   * `Name = Expr;`
+  * `Name[Expr] = Expr;`
 
 * Printing to standard output (integers only):
   * `print "Placeholder: " Expr;`
