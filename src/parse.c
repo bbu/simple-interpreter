@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "lex.h"
 #include "parse.h"
@@ -9,8 +10,10 @@
 #define GRAMMAR_SIZE (sizeof(grammar) / sizeof(*grammar))
 #define SKIP_TOKEN(t) ((t) == TK_WSPC || (t) == TK_LCOM || (t) == TK_BCOM)
 
-static struct node stack[STACK_MAX_DEPTH];
-static size_t st_size;
+static struct {
+    size_t size;
+    struct node nodes[STACK_MAX_DEPTH];
+} stack;
 
 struct term {
     /* a rule RHS term is either a terminal token or a non-terminal */
@@ -64,6 +67,7 @@ static const struct rule grammar[] = {
     r1(Stmt, n(Ctrl)                                                       )
 
     r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)                            )
+    r4(Assn, n(Aexp), t(ASSN), n(Expr), t(SCOL)                            )
 
     r3(Prnt, t(PRNT), n(Expr), t(SCOL)                                     )
     r4(Prnt, t(PRNT), t(STRL), n(Expr), t(SCOL)                            )
@@ -88,6 +92,7 @@ static const struct rule grammar[] = {
     r1(Expr, n(Bexp)                                                       )
     r1(Expr, n(Uexp)                                                       )
     r1(Expr, n(Texp)                                                       )
+    r1(Expr, n(Aexp)                                                       )
 
     r3(Pexp, t(LPAR), n(Expr), t(RPAR)                                     )
 
@@ -110,6 +115,8 @@ static const struct rule grammar[] = {
     r2(Uexp, t(NEGA), n(Expr)                                              )
 
     r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr)                   )
+    
+    r4(Aexp, t(NAME), t(LBRA), n(Expr), t(RBRA)                            )
 };
 
 #undef r1
@@ -144,7 +151,7 @@ static const uint8_t precedence[TK_MODU - TK_EQUL + 1] = {
 
 static void print_stack(void)
 {
-    static const char *const nts[NT_COUNT] = {
+    static const char *const nts[] = {
         "Unit",
         "Stmt",
         "Assn",
@@ -161,50 +168,53 @@ static void print_stack(void)
         "Bexp",
         "Uexp",
         "Texp",
+        "Aexp",
     };
 
-    for (size_t i = 0; i < st_size; ++i) {
-        if (stack[i].nchildren) {
-            printf(YELLOW("%s "), nts[stack[i].nt]);
-        } else if (stack[i].token->tk == TK_FBEG) {
+    assert(sizeof(nts) / sizeof(*nts) == NT_COUNT);
+
+    for (size_t i = 0; i < stack.size; ++i) {
+        if (stack.nodes[i].nchildren) {
+            printf(YELLOW("%s "), nts[stack.nodes[i].nt]);
+        } else if (stack.nodes[i].token->tk == TK_FBEG) {
             printf(GREEN("^ "));
-        } else if (stack[i].token->tk == TK_FEND) {
+        } else if (stack.nodes[i].token->tk == TK_FEND) {
             printf(GREEN("$ "));
         } else {
-            int len = stack[i].token->end - stack[i].token->beg;
-            printf(GREEN("%.*s "), len, stack[i].token->beg);
+            const ptrdiff_t len = 
+                stack.nodes[i].token->end - stack.nodes[i].token->beg;
+
+            printf(GREEN("%.*s "), (int) len, stack.nodes[i].token->beg);
         }
     }
 
     puts("");
 }
 
-static void destroy_node(struct node *const node)
+static void destroy_node(const struct node *const node)
 {
     if (node->nchildren) {
-        for (size_t i = 0; i < node->nchildren; ++i) {
-            destroy_node(node->children[i]);
+        for (size_t child_idx = 0; child_idx < node->nchildren; ++child_idx) {
+            destroy_node(node->children[child_idx]);
         }
 
-        free(*&node->children[0]);
+        free(node->children[0]);
         free(node->children);
     }
 }
 
 static void destroy_stack(void)
 {
-    for (size_t i = 0; i < st_size; ++i) {
-        destroy_node(&stack[i]);
+    for (size_t node_idx = 0; node_idx < stack.size; ++node_idx) {
+        destroy_node(&stack.nodes[node_idx]);
     }
-
-    st_size = 0;
 }
 
-static int term_eq_node(
+static inline int term_eq_node(
     const struct term *const term,
     const struct node *const node)
 {
-    int node_is_leaf = node->nchildren == 0;
+    const int node_is_leaf = node->nchildren == 0;
 
     if (term->is_tk == node_is_leaf) {
         if (node_is_leaf) {
@@ -221,13 +231,13 @@ static size_t match_rule(const struct rule *const rule, size_t *const at)
 {
     const struct term *prev = NULL;
     const struct term *term = &rule->rhs[RULE_RHS_LAST];
-    ssize_t st_idx = st_size - 1;
+    ssize_t st_idx = stack.size - 1;
 
     do {
-        if (term_eq_node(term, &stack[st_idx])) {
+        if (term_eq_node(term, &stack.nodes[st_idx])) {
             prev = term->is_mt ? term : NULL;
             --term, --st_idx;
-        } else if (prev && term_eq_node(prev, &stack[st_idx])) {
+        } else if (prev && term_eq_node(prev, &stack.nodes[st_idx])) {
             --st_idx;
         } else if (term->is_mt) {
             prev = NULL;
@@ -238,8 +248,8 @@ static size_t match_rule(const struct rule *const rule, size_t *const at)
         }
     } while (st_idx >= 0 && !(term->is_tk && term->tk == TK_COUNT));
 
-    int reached_eor = term && term->is_tk && term->tk == TK_COUNT;
-    size_t reduction_size = st_size - st_idx - 1;
+    const int reached_eor = term && term->is_tk && term->tk == TK_COUNT;
+    const size_t reduction_size = stack.size - st_idx - 1;
 
     return reached_eor && reduction_size ?
         (*at = st_idx + 1, reduction_size) : 0;
@@ -247,11 +257,11 @@ static size_t match_rule(const struct rule *const rule, size_t *const at)
 
 static inline int shift(const struct token *const token)
 {
-    if (st_size > STACK_MAX_DEPTH - 1) {
-        return 1;
+    if (stack.size >= STACK_MAX_DEPTH) {
+        return -1;
     }
 
-    stack[st_size++] = (struct node) {
+    stack.nodes[stack.size++] = (struct node) {
         .nchildren = 0,
         .token = token,
     };
@@ -268,9 +278,11 @@ static inline int should_shift_pre(
         ++(*token_idx);
     }
 
+    const struct token *ahead;
+
     if (rule->lhs == NT_Bexp) {
         /* check whether the operator ahead has a lower precedence */
-        const struct token *ahead = &tokens[*token_idx];
+        ahead = &tokens[*token_idx];
 
         if (ahead->tk >= TK_EQUL && ahead->tk <= TK_MODU) {
             uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
@@ -282,7 +294,15 @@ static inline int should_shift_pre(
         }
     } else if (rule->lhs == NT_Atom && rule->rhs[RULE_RHS_LAST].tk == TK_NAME) {
         /* do not allow the left side of an assignment to escalate to Expr */
-        if (tokens[*token_idx].tk == TK_ASSN) {
+        ahead = &tokens[*token_idx];
+
+        if (ahead->tk == TK_ASSN || ahead->tk == TK_LBRA) {
+            return 1;
+        }
+    } else if (rule->lhs == NT_Expr && rule->rhs[RULE_RHS_LAST].nt == NT_Aexp) {
+        ahead = &tokens[*token_idx];
+
+        if (ahead->tk == TK_ASSN) {
             return 1;
         }
     }
@@ -301,7 +321,7 @@ static inline int should_shift_post(
 
     if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
         /* dirty hack to parse if-elif-else chains */
-        const struct token *ahead = &tokens[*token_idx];
+        const struct token *const ahead = &tokens[*token_idx];
 
         if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
             return 1;
@@ -311,15 +331,16 @@ static inline int should_shift_post(
     return 0;
 }
 
-static int reduce(const struct rule *rule, const size_t at, const size_t size)
+static int reduce(const struct rule *const rule, 
+    const size_t at, const size_t size)
 {
-    struct node *child_nodes = malloc(size * sizeof(struct node));
+    struct node *const child_nodes = malloc(size * sizeof(struct node));
 
     if (!child_nodes) {
         return -1;
     }
 
-    struct node *const reduce_at = &stack[at];
+    struct node *const reduce_at = &stack.nodes[at];
     struct node **const old_children = reduce_at->children;
     reduce_at->children = malloc(size * sizeof(struct node *)) ?: old_children;
 
@@ -328,17 +349,17 @@ static int reduce(const struct rule *rule, const size_t at, const size_t size)
     }
 
     for (size_t child_idx = 0, st_idx = at; 
-        st_idx < st_size;
+        st_idx < stack.size;
         ++st_idx, ++child_idx) {
 
-        child_nodes[child_idx] = stack[st_idx];
+        child_nodes[child_idx] = stack.nodes[st_idx];
         reduce_at->children[child_idx] = &child_nodes[child_idx];
     }
 
     child_nodes[0].children = old_children;
     reduce_at->nchildren = size;
     reduce_at->nt = rule->lhs;
-    st_size = at + 1;
+    stack.size = at + 1;
     return 0;
 }
 
@@ -354,7 +375,7 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
         err_nomem    = { .nchildren = 0, .token = &nomem },
         err_overflow = { .nchildren = 0, .token = &overflow };
 
-    st_size = 0;
+    stack.size = 0;
 
     for (size_t token_idx = 0; token_idx < ntokens; ) {
         if (SKIP_TOKEN(tokens[token_idx].tk)) {
@@ -376,7 +397,7 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
             size_t reduction_at, reduction_size;
 
             if ((reduction_size = match_rule(rule, &reduction_at))) {
-                int do_shift = should_shift_pre(rule, tokens, &token_idx);
+                const int do_shift = should_shift_pre(rule, tokens, &token_idx);
 
                 if (!do_shift) {
                     if (reduce(rule, reduction_at, reduction_size)) {
@@ -384,7 +405,7 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
                         return destroy_stack(), err_nomem;
                     }
 
-                    ptrdiff_t rule_number = rule - grammar + 1;
+                    const ptrdiff_t rule_number = rule - grammar + 1;
                     printf(ORANGE("Red%02td: "), rule_number), print_stack();
                 }
 
@@ -402,14 +423,14 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
         } while (++rule != grammar + GRAMMAR_SIZE);
     }
 
-    int accepted = st_size == 1 &&
-        stack[0].nchildren && stack[0].nt == NT_Unit;
+    const int accepted = stack.size == 1 &&
+        stack.nodes[0].nchildren && stack.nodes[0].nt == NT_Unit;
 
     printf(accepted ? GREEN("ACCEPT ") : RED("REJECT ")), print_stack();
-    return accepted ? stack[0] : (destroy_stack(), err_reject);
+    return accepted ? stack.nodes[0] : (destroy_stack(), err_reject);
 }
 
-void destroy_tree(struct node root)
+void destroy_tree(const struct node root)
 {
     destroy_node(&root);
 }

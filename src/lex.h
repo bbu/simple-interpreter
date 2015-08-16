@@ -21,6 +21,8 @@ enum {
     TK_BCOM,
     TK_LPAR,
     TK_RPAR,
+    TK_LBRA,
+    TK_RBRA,
     TK_LBRC,
     TK_RBRC,
     TK_COND,
@@ -59,7 +61,7 @@ struct token {
     tk_t tk;
 };
 
-int lex(const uint8_t *input, struct token **ranges, size_t *nranges);
+int lex(const uint8_t *, struct token **, size_t *);
 
 #define LEX_OK 0
 #define LEX_NOMEM 1

@@ -205,6 +205,8 @@ static sts_t tk_bcom(const uint8_t c, uint8_t *const s)
 
 TOKEN_DEFINE_1(tk_lpar, "(");
 TOKEN_DEFINE_1(tk_rpar, ")");
+TOKEN_DEFINE_1(tk_lbra, "[");
+TOKEN_DEFINE_1(tk_rbra, "]");
 TOKEN_DEFINE_1(tk_lbrc, "{");
 TOKEN_DEFINE_1(tk_rbrc, "}");
 TOKEN_DEFINE_2(tk_cond, "if");
@@ -241,6 +243,8 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_bcom,
     tk_lpar,
     tk_rpar,
+    tk_lbra,
+    tk_rbra,
     tk_lbrc,
     tk_rbrc,
     tk_cond,
@@ -269,17 +273,24 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_coln,
 };
 
-static int push_token(struct token **ranges, size_t *nranges, size_t *allocated,
-    tk_t token, const uint8_t *beg, const uint8_t *end)
+static inline int push_token(
+    struct token **const ranges, 
+    size_t *const nranges,
+    size_t *const allocated,
+    const tk_t token, 
+    const uint8_t *const beg, 
+    const uint8_t *const end)
 {
     if (*nranges + 1 > *allocated) {
         *allocated = (*allocated ?: 1) * 8;
-        struct token *tmp = realloc(*ranges, *allocated * sizeof(struct token));
+
+        struct token *const tmp = 
+            realloc(*ranges, *allocated * sizeof(struct token));
 
         if (tmp == NULL) {
             free(*ranges);
             *ranges = NULL;
-            return 1;
+            return -1;
         } else {
             *ranges = tmp;                
         }
@@ -294,7 +305,8 @@ static int push_token(struct token **ranges, size_t *nranges, size_t *allocated,
     return 0;
 }
 
-int lex(const uint8_t *input, struct token **ranges, size_t *nranges)
+int lex(const uint8_t *const input, 
+    struct token **const ranges, size_t *const nranges)
 {
     static struct {
         sts_t prev, curr;

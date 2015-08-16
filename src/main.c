@@ -11,10 +11,11 @@
 #include "parse.h"
 #include "run.h"
 
-static void print_tokens(const struct token *tokens, size_t ntokens, int error)
+static void print_tokens(const struct token *const tokens,
+    const size_t ntokens, const int error)
 {
     for (size_t i = 0, alternate = 0; i < ntokens; ++i) {
-        struct token token = tokens[i];
+        const struct token token = tokens[i];
 
         if (token.tk == TK_FBEG || token.tk == TK_FEND) {
             continue;
@@ -24,7 +25,7 @@ static void print_tokens(const struct token *tokens, size_t ntokens, int error)
             alternate++;
         }
 
-        int len = token.end - token.beg;
+        const int len = token.end - token.beg;
 
         if (i == ntokens - 1 && error == LEX_UNKNOWN_TOKEN) {
             printf(RED("%.*s") CYAN(" < Unknown token\n"), len ?: 1, token.beg);
@@ -62,7 +63,7 @@ int main(int argc, char **argv)
         return close(fd), exit_status;
     }
 
-    const uint8_t *mapped = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+    const uint8_t *const mapped = mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
     if (mapped == MAP_FAILED) {
         return perror("mmap"), close(fd), exit_status;
@@ -71,7 +72,7 @@ int main(int argc, char **argv)
     puts(WHITE("*** Lexing ***"));
     struct token *tokens;
     size_t ntokens;
-    int lex_error = lex(mapped, &tokens, &ntokens);
+    const int lex_error = lex(mapped, &tokens, &ntokens);
 
     if (!lex_error || lex_error == LEX_UNKNOWN_TOKEN) {
         print_tokens(tokens, ntokens, lex_error);
@@ -81,7 +82,7 @@ int main(int argc, char **argv)
 
     if (!lex_error) {
         puts(WHITE("\n*** Parsing ***"));
-        struct node root = parse(tokens, ntokens);
+        const struct node root = parse(tokens, ntokens);
 
         if (!parse_error(root)) {
             puts(WHITE("\n*** Running ***"));
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
     }
 
     free(tokens);
-    munmap((uint8_t *) mapped, size);
+    munmap((uint8_t *const) mapped, size);
     close(fd);
     return exit_status;
 }
