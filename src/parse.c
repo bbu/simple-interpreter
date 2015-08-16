@@ -174,17 +174,17 @@ static void print_stack(void)
     assert(sizeof(nts) / sizeof(*nts) == NT_COUNT);
 
     for (size_t i = 0; i < stack.size; ++i) {
-        if (stack.nodes[i].nchildren) {
-            printf(YELLOW("%s "), nts[stack.nodes[i].nt]);
-        } else if (stack.nodes[i].token->tk == TK_FBEG) {
+        const struct node *const node = &stack.nodes[i];
+
+        if (node->nchildren) {
+            printf(YELLOW("%s "), nts[node->nt]);
+        } else if (node->token->tk == TK_FBEG) {
             printf(GREEN("^ "));
-        } else if (stack.nodes[i].token->tk == TK_FEND) {
+        } else if (node->token->tk == TK_FEND) {
             printf(GREEN("$ "));
         } else {
-            const ptrdiff_t len = 
-                stack.nodes[i].token->end - stack.nodes[i].token->beg;
-
-            printf(GREEN("%.*s "), (int) len, stack.nodes[i].token->beg);
+            const ptrdiff_t len = node->token->end - node->token->beg;
+            printf(GREEN("%.*s "), (int) len, node->token->beg);
         }
     }
 
@@ -281,7 +281,10 @@ static inline int should_shift_pre(
     const struct token *ahead;
 
     if (rule->lhs == NT_Bexp) {
-        /* check whether the operator ahead has a lower precedence */
+        /*
+            Check whether the operator ahead has a lower precedence. If it has,
+            let the parser shift it before applying the Bexp reduction.
+        */
         ahead = &tokens[*token_idx];
 
         if (ahead->tk >= TK_EQUL && ahead->tk <= TK_MODU) {
@@ -293,13 +296,20 @@ static inline int should_shift_pre(
             }
         }
     } else if (rule->lhs == NT_Atom && rule->rhs[RULE_RHS_LAST].tk == TK_NAME) {
-        /* do not allow the left side of an assignment to escalate to Expr */
+        /*
+            Do not allow the left side of an assignment or an array name to 
+            escalate to Expr.
+        */
         ahead = &tokens[*token_idx];
 
         if (ahead->tk == TK_ASSN || ahead->tk == TK_LBRA) {
             return 1;
         }
     } else if (rule->lhs == NT_Expr && rule->rhs[RULE_RHS_LAST].nt == NT_Aexp) {
+        /*
+            Do not allow an Aexp on the left side of an assignment to escalate
+            to Expr.
+        */
         ahead = &tokens[*token_idx];
 
         if (ahead->tk == TK_ASSN) {

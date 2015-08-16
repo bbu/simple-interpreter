@@ -32,8 +32,6 @@ static struct {
 
 void run(const struct node *const unit)
 {
-    varstore.size = 0;
-
     for (size_t stmt_idx = 1; stmt_idx < unit->nchildren - 1; ++stmt_idx) {
         run_stmt(unit->children[stmt_idx]);
     }
@@ -41,6 +39,8 @@ void run(const struct node *const unit)
     for (size_t var_idx = 0; var_idx < varstore.size; ++var_idx) {
         free(varstore.vars[var_idx].values);
     }
+
+    varstore.size = 0;
 }
 
 static void run_stmt(const struct node *const stmt)

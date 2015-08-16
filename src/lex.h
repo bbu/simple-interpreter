@@ -63,6 +63,8 @@ struct token {
 
 int lex(const uint8_t *, struct token **, size_t *);
 
-#define LEX_OK 0
-#define LEX_NOMEM 1
-#define LEX_UNKNOWN_TOKEN 2
+enum {
+    LEX_OK,
+    LEX_NOMEM,
+    LEX_UNKNOWN_TOKEN,
+};
