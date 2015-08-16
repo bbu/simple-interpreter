@@ -19,7 +19,7 @@ The interpreter is really straightforward. It starts from the top of the parse t
   * `while (Expr) { N✕Stmt }` 
   * `do { N✕Stmt } while (Expr);`
 
-* Variable assignment (integers only):
+* Variable and array assignment (integers only, `var` is equivalent to `var[0]`):
   * `Name = Expr;`
   * `Name[Expr] = Expr;`
 
