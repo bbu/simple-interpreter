@@ -61,7 +61,7 @@ struct token {
     tk_t tk;
 };
 
-int lex(const uint8_t *, struct token **, size_t *);
+int lex(const uint8_t *, size_t, struct token **, size_t *);
 
 enum {
     LEX_OK,

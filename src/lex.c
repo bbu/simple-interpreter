@@ -305,7 +305,7 @@ static inline int push_token(
     return 0;
 }
 
-int lex(const uint8_t *const input, 
+int lex(const uint8_t *const input, const size_t size,
     struct token **const ranges, size_t *const nranges)
 {
     static struct {
@@ -331,7 +331,7 @@ int lex(const uint8_t *const input,
 
     PUSH_OR_NOMEM(TK_FBEG, NULL, NULL);
 
-    while (*prefix_end) {
+    while (prefix_end < input + size) {
         int did_accept = 0;
         
         foreach_token {

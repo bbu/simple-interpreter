@@ -28,7 +28,7 @@ static void print_tokens(const struct token *const tokens,
         const int len = token.end - token.beg;
 
         if (i == ntokens - 1 && error == LEX_UNKNOWN_TOKEN) {
-            printf(RED("%.*s") CYAN(" < Unknown token\n"), len ?: 1, token.beg);
+            printf(RED("%.*s") CYAN("< Unknown token\n"), len ?: 1, token.beg);
         } else if (token.tk == TK_LCOM || token.tk == TK_BCOM) {
             printf(GRAY("%.*s"), len, token.beg);
         } else if (alternate % 2) {
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     puts(WHITE("*** Lexing ***"));
     struct token *tokens;
     size_t ntokens;
-    const int lex_error = lex(mapped, &tokens, &ntokens);
+    const int lex_error = lex(mapped, size, &tokens, &ntokens);
 
     if (!lex_error || lex_error == LEX_UNKNOWN_TOKEN) {
         print_tokens(tokens, ntokens, lex_error);
