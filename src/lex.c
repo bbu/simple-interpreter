@@ -117,7 +117,7 @@ static sts_t tk_strl(const uint8_t c, uint8_t *const s)
 
     case tk_strl_accum:
         return c != '"' ? STS_HUNGRY : TR(tk_strl_end, ACCEPT);
-        
+
     case tk_strl_end:
         return REJECT;
     }
@@ -194,7 +194,7 @@ static sts_t tk_bcom(const uint8_t c, uint8_t *const s)
 
     case tk_bcom_close_star:
         return c == '/' ? TR(tk_bcom_end, ACCEPT) : TR(tk_bcom_accum, HUNGRY);
-        
+
     case tk_bcom_end:
         return REJECT;
     }
@@ -274,11 +274,11 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
 };
 
 static inline int push_token(
-    struct token **const ranges, 
+    struct token **const ranges,
     size_t *const nranges,
     size_t *const allocated,
-    const tk_t token, 
-    const uint8_t *const beg, 
+    const tk_t token,
+    const uint8_t *const beg,
     const uint8_t *const end)
 {
     if (*nranges >= *allocated) {
@@ -292,13 +292,13 @@ static inline int push_token(
             *ranges = NULL;
             return -1;
         } else {
-            *ranges = tmp;                
+            *ranges = tmp;
         }
     }
 
     (*ranges)[(*nranges)++] = (struct token) {
-        .beg = beg, 
-        .end = end, 
+        .beg = beg,
+        .end = end,
         .tk = token
     };
 
@@ -313,14 +313,14 @@ int lex(const uint8_t *const input, const size_t size,
     } statuses[TK_COUNT] = {
         [0 ... TK_COUNT - 1] = { STS_HUNGRY, STS_REJECT }
     };
-    
+
     uint8_t states[TK_COUNT] = {0};
 
     const uint8_t *prefix_beg = input, *prefix_end = input;
     tk_t accepted_token;
     size_t allocated = 0;
     *ranges = NULL, *nranges = 0;
-    
+
     #define PUSH_OR_NOMEM(tk, beg, end) \
         if (push_token(ranges, nranges, &allocated, (tk), (beg), (end))) { \
             return LEX_NOMEM; \
@@ -333,7 +333,7 @@ int lex(const uint8_t *const input, const size_t size,
 
     while (prefix_end < input + size) {
         int did_accept = 0;
-        
+
         foreach_token {
             if (statuses[token].prev != STS_REJECT) {
                 statuses[token].curr = tokens[token](*prefix_end, &states[token]);
@@ -378,7 +378,7 @@ int lex(const uint8_t *const input, const size_t size,
         if (statuses[token].curr == STS_ACCEPT) {
             accepted_token = token;
         }
-        
+
         statuses[token].prev = STS_HUNGRY;
         statuses[token].curr = STS_REJECT;
     }
@@ -391,7 +391,7 @@ int lex(const uint8_t *const input, const size_t size,
 
     PUSH_OR_NOMEM(TK_FEND, NULL, NULL);
     return LEX_OK;
-    
+
     #undef PUSH_OR_NOMEM
     #undef foreach_token
 }

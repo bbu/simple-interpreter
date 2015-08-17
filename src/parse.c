@@ -115,7 +115,7 @@ static const struct rule grammar[] = {
     r2(Uexp, t(NEGA), n(Expr)                                              )
 
     r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr)                   )
-    
+
     r4(Aexp, t(NAME), t(LBRA), n(Expr), t(RBRA)                            )
 };
 
@@ -134,19 +134,7 @@ static const struct rule grammar[] = {
 #undef no
 
 static const uint8_t precedence[TK_MODU - TK_EQUL + 1] = {
-    7,
-    7,
-    6,
-    6,
-    6,
-    6,
-    11,
-    12,
-    4,
-    4,
-    3,
-    3,
-    3,
+    4, 4, 3, 3, 3, 3, 5, 6, 2, 2, 1, 1, 1,
 };
 
 static void print_stack(void)
@@ -270,7 +258,7 @@ static inline int shift(const struct token *const token)
 }
 
 static inline int should_shift_pre(
-    const struct rule *const rule, 
+    const struct rule *const rule,
     const struct token *const tokens,
     size_t *const token_idx)
 {
@@ -290,14 +278,14 @@ static inline int should_shift_pre(
         if (ahead->tk >= TK_EQUL && ahead->tk <= TK_MODU) {
             uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
             uint8_t p2 = precedence[ahead->tk - TK_EQUL];
-            
+
             if (p2 < p1) {
                 return 1;
             }
         }
     } else if (rule->lhs == NT_Atom && rule->rhs[RULE_RHS_LAST].tk == TK_NAME) {
         /*
-            Do not allow the left side of an assignment or an array name to 
+            Do not allow the left side of an assignment or an array name to
             escalate to Expr.
         */
         ahead = &tokens[*token_idx];
@@ -322,7 +310,7 @@ static inline int should_shift_pre(
 
 static inline int should_shift_post(
     const struct rule *const rule,
-    const struct token *const tokens, 
+    const struct token *const tokens,
     size_t *const token_idx)
 {
     while (SKIP_TOKEN(tokens[*token_idx].tk)) {
@@ -341,7 +329,7 @@ static inline int should_shift_post(
     return 0;
 }
 
-static int reduce(const struct rule *const rule, 
+static int reduce(const struct rule *const rule,
     const size_t at, const size_t size)
 {
     struct node *const child_nodes = malloc(size * sizeof(struct node));
@@ -358,7 +346,7 @@ static int reduce(const struct rule *const rule,
         return free(child_nodes), -1;
     }
 
-    for (size_t child_idx = 0, st_idx = at; 
+    for (size_t child_idx = 0, st_idx = at;
         st_idx < stack.size;
         ++st_idx, ++child_idx) {
 
@@ -375,11 +363,11 @@ static int reduce(const struct rule *const rule,
 
 struct node parse(const struct token *const tokens, const size_t ntokens)
 {
-    static const struct token 
+    static const struct token
         reject       = { .tk = PARSE_REJECT   },
         nomem        = { .tk = PARSE_NOMEM    },
         overflow     = { .tk = PARSE_OVERFLOW };
-    
+
     static const struct node
         err_reject   = { .nchildren = 0, .token = &reject   },
         err_nomem    = { .nchildren = 0, .token = &nomem    },
@@ -399,7 +387,7 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
         }
 
         printf(CYAN("Shift: ")), print_stack();
-        
+
         try_reduce_again:;
         const struct rule *rule = grammar;
 

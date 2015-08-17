@@ -35,7 +35,7 @@ void run(const struct node *const unit)
     for (size_t stmt_idx = 1; stmt_idx < unit->nchildren - 1; ++stmt_idx) {
         run_stmt(unit->children[stmt_idx]);
     }
-    
+
     for (size_t var_idx = 0; var_idx < varstore.size; ++var_idx) {
         free(varstore.vars[var_idx].values);
     }
@@ -67,19 +67,19 @@ static void run_assn(const struct node *const assn)
 {
     const int lhs_is_aexp = assn->children[0]->nchildren;
 
-    const int array_idx = lhs_is_aexp ? 
+    const int array_idx = lhs_is_aexp ?
         eval_expr(assn->children[0]->children[2]) : 0;
 
-    const uint8_t *const beg = lhs_is_aexp ? 
-        assn->children[0]->children[0]->token->beg : 
+    const uint8_t *const beg = lhs_is_aexp ?
+        assn->children[0]->children[0]->token->beg :
         assn->children[0]->token->beg;
 
-    const ptrdiff_t len = lhs_is_aexp ? 
-        assn->children[0]->children[0]->token->end - beg : 
+    const ptrdiff_t len = lhs_is_aexp ?
+        assn->children[0]->children[0]->token->end - beg :
         assn->children[0]->token->end - beg;
-    
+
     size_t var_idx;
-    
+
     for (var_idx = 0; var_idx < varstore.size; ++var_idx) {
         if (varstore.vars[var_idx].len == len &&
             !memcmp(varstore.vars[var_idx].beg, beg, len)) {
@@ -92,20 +92,20 @@ static void run_assn(const struct node *const assn)
 
                 return;
             }
-            
+
             if (array_idx >= 0 && array_idx < array_size) {
-                varstore.vars[var_idx].values[array_idx] = 
+                varstore.vars[var_idx].values[array_idx] =
                     eval_expr(assn->children[2]);
-                
+
                 return;
             } else if (array_idx >= 0) {
                 const size_t new_size = (array_idx + 1) * 2;
-                
+
                 int *const tmp = realloc(
                     varstore.vars[var_idx].values, new_size * sizeof(int));
 
                 if (!tmp) {
-                    free(varstore.vars[var_idx].values);                    
+                    free(varstore.vars[var_idx].values);
                     varstore.vars[var_idx].array_size = 0;
                     varstore.vars[var_idx].values = NULL;
                     perror("realloc");
@@ -114,9 +114,9 @@ static void run_assn(const struct node *const assn)
 
                 varstore.vars[var_idx].values = tmp;
                 varstore.vars[var_idx].array_size = new_size;
-                varstore.vars[var_idx].values[array_idx] = 
+                varstore.vars[var_idx].values[array_idx] =
                     eval_expr(assn->children[2]);
-                
+
                 return;
             } else {
                 fprintf(stderr, "warn: negative array offset\n");
@@ -124,23 +124,23 @@ static void run_assn(const struct node *const assn)
             }
         }
     }
-    
+
     if (var_idx < VARSTORE_CAPACITY) {
         if (array_idx < 0) {
             fprintf(stderr, "warn: negative array offset\n");
             return;
         }
-    
+
         varstore.vars[var_idx].beg = beg;
         varstore.vars[var_idx].len = len;
         varstore.vars[var_idx].values = malloc((array_idx + 1) * sizeof(int));
         varstore.vars[var_idx].array_size = 0;
-        
+
         if (!varstore.vars[var_idx].values) {
             perror("malloc");
             return;
         }
-        
+
         varstore.vars[var_idx].array_size = array_idx + 1;
         varstore.vars[var_idx].values[array_idx] = eval_expr(assn->children[2]);
         varstore.size++;
@@ -159,7 +159,7 @@ static void run_prnt(const struct node *const prnt)
         const uint8_t *const beg = strl->token->beg + 1;
         const uint8_t *const end = strl->token->end - 1;
         const ptrdiff_t len = end - beg;
-        
+
         printf("%.*s%d\n", (int) len, beg, eval_expr(prnt->children[2]));
     }
 }
@@ -169,7 +169,7 @@ static void run_ctrl(const struct node *const ctrl)
     switch (ctrl->children[0]->nt) {
     case NT_Cond: {
         const struct node *const cond = ctrl->children[0];
-    
+
         if (eval_expr(cond->children[1])) {
             const struct node *stmt = cond->children[3];
 
@@ -182,14 +182,14 @@ static void run_ctrl(const struct node *const ctrl)
             do {
                 if (ctrl->children[child_idx]->nt == NT_Elif) {
                     const struct node *const elif = ctrl->children[child_idx];
-                    
+
                     if (eval_expr(elif->children[1])) {
                         const struct node *stmt = elif->children[3];
-                    
+
                         while (stmt->nchildren) {
                             run_stmt(stmt++);
                         }
-                        
+
                         break;
                     }
                 } else {
@@ -198,7 +198,7 @@ static void run_ctrl(const struct node *const ctrl)
 
                     while (stmt->nchildren) {
                         run_stmt(stmt++);
-                    }                    
+                    }
                 }
             } while (++child_idx < ctrl->nchildren);
         }
@@ -210,7 +210,7 @@ static void run_ctrl(const struct node *const ctrl)
 
         do {
             const struct node *stmt = dowh->children[2];
-            
+
             while (stmt->nchildren) {
                 run_stmt(stmt++);
             }
@@ -255,7 +255,7 @@ static int eval_atom(const struct node *const atom)
 
         return fprintf(stderr, "warn: access to undefined variable\n"), 0;
     }
-    
+
     case TK_NMBR: {
         const uint8_t *const beg = atom->children[0]->token->beg;
         const uint8_t *const end = atom->children[0]->token->end;
@@ -287,7 +287,7 @@ static int eval_expr(const struct node *const expr)
 
     case NT_Uexp:
         return eval_uexp(expr->children[0]);
-        
+
     case NT_Texp:
         return eval_texp(expr->children[0]);
 
@@ -319,7 +319,7 @@ static int eval_bexp(const struct node *const bexp)
     case TK_DIVI: {
         const int dividend = eval_expr(bexp->children[0]);
         const int divisor = eval_expr(bexp->children[2]);
-        
+
         if (divisor) {
             return dividend / divisor;
         } else {
@@ -327,7 +327,7 @@ static int eval_bexp(const struct node *const bexp)
             return 0;
         }
     }
-    
+
     case TK_MODU:
         return eval_expr(bexp->children[0]) % eval_expr(bexp->children[2]);
 
@@ -379,7 +379,7 @@ static int eval_uexp(const struct node *const uexp)
 
 static int eval_texp(const struct node *const texp)
 {
-    return eval_expr(texp->children[0]) ? 
+    return eval_expr(texp->children[0]) ?
         eval_expr(texp->children[2]) : eval_expr(texp->children[4]);
 }
 
@@ -404,6 +404,6 @@ static int eval_aexp(const struct node *const aexp)
             }
         }
     }
-    
+
     return fprintf(stderr, "warn: access to undefined array\n"), 0;
 }
