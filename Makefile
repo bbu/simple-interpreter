@@ -1,4 +1,4 @@
-CFLAGS := -std=gnu11 -Wall -Werror
+CFLAGS = -std=gnu11 -Wall -Werror
 NAME = interp
 
 SRCDIR := ./src
