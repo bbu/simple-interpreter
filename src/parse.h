@@ -51,7 +51,7 @@ enum {
 };
 
 #define parse_error(root) ({ \
-    typeof(root) root_once = (root); \
+    struct node root_once = (root); \
     root_once.nchildren ? PARSE_OK : root_once.token->tk; \
 })
 

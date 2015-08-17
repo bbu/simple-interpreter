@@ -1,4 +1,9 @@
-CFLAGS = -std=gnu99 -Wall -Werror
+EXCLUDE_WARNINGS = \
+    -Wno-gnu-conditional-omitted-operand \
+    -Wno-gnu-designator \
+    -Wno-gnu-statement-expression
+
+CFLAGS := -std=gnu11 -pedantic -Wall -Werror $(EXCLUDE_WARNINGS)
 NAME = interp
 
 SRCDIR := ./src

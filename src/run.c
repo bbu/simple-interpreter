@@ -87,8 +87,10 @@ static void run_assn(const struct node *const assn)
             const size_t array_size = varstore.vars[var_idx].array_size;
 
             if (!array_size) {
-                return fprintf(stderr, "warn: a previous reallocation has failed, "
-                    "assignment has no effect\n"), (void) 0;
+                fprintf(stderr, "warn: a previous reallocation has failed, "
+                    "assignment has no effect\n");
+
+                return;
             }
             
             if (array_idx >= 0 && array_idx < array_size) {
@@ -106,7 +108,8 @@ static void run_assn(const struct node *const assn)
                     free(varstore.vars[var_idx].values);                    
                     varstore.vars[var_idx].array_size = 0;
                     varstore.vars[var_idx].values = NULL;
-                    return perror("realloc"), (void) 0;
+                    perror("realloc");
+                    return;
                 }
 
                 varstore.vars[var_idx].values = tmp;
@@ -116,14 +119,16 @@ static void run_assn(const struct node *const assn)
                 
                 return;
             } else {
-                return fprintf(stderr, "warn: negative array offset\n"), (void) 0;
+                fprintf(stderr, "warn: negative array offset\n");
+                return;
             }
         }
     }
     
     if (var_idx < VARSTORE_CAPACITY) {
         if (array_idx < 0) {
-            return fprintf(stderr, "warn: negative array offset\n"), (void) 0;
+            fprintf(stderr, "warn: negative array offset\n");
+            return;
         }
     
         varstore.vars[var_idx].beg = beg;
@@ -132,7 +137,8 @@ static void run_assn(const struct node *const assn)
         varstore.vars[var_idx].array_size = 0;
         
         if (!varstore.vars[var_idx].values) {
-            return perror("malloc"), (void) 0;
+            perror("malloc");
+            return;
         }
         
         varstore.vars[var_idx].array_size = array_idx + 1;
