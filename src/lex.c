@@ -281,7 +281,7 @@ static inline int push_token(
     const uint8_t *const beg, 
     const uint8_t *const end)
 {
-    if (*nranges + 1 > *allocated) {
+    if (*nranges >= *allocated) {
         *allocated = (*allocated ?: 1) * 8;
 
         struct token *const tmp = 
