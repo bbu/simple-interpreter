@@ -4,7 +4,7 @@ This is a hackable and extensible lexer, parser and interpreter for a minimalist
 
 ## How does it work?
 
-The lexer produces a list of tokens from the input (a `PROT_READ` memory-mapped file). Each indidivual token is produced by consuming a character from the input and then asking each of the token functions whether they accept it. Each such a token function has an internal state and can return any of `STS_ACCEPT`, `STS_REJECT` or `STS_HUNGRY` on a character consumed. The lexer reads in characters until all of the functions return `STS_REJECT` (at which point they reset their internal state), and then the accepted token is determined by looking back for an `STS_ACCEPT` from the previous iteration.
+The lexer produces a list of tokens from the input (a `PROT_READ` memory-mapped file). Each individual token is produced by consuming a character from the input and then asking each of the token functions whether they accept it. Each such token function has an internal state and can return any of `STS_ACCEPT`, `STS_REJECT` or `STS_HUNGRY` on a character consumed. The lexer reads in characters until all of the functions return `STS_REJECT` (at which point they reset their internal state), and then the accepted token is determined by looking back for an `STS_ACCEPT` from the previous iteration.
 
 Essentially, this is a "maximal munch" algorithm.
 
