@@ -12,4 +12,4 @@ do {
     }
     
     number = number + 1;
-} while (number < 100);
+} while (number <= 100);

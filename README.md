@@ -70,15 +70,15 @@ do {
     }
     
     number = number + 1;
-} while (number < 100);
+} while (number <= 100);
 
 *** Parsing ***
 Shift: ^ 
 Shift: ^ number 
 Shift: ^ number = 
 Shift: ^ number = 1 
-Red18: ^ number = Atom 
-Red19: ^ number = Expr 
+Red19: ^ number = Atom 
+Red20: ^ number = Expr 
 Shift: ^ number = Expr ; 
 Red05: ^ Assn 
 Red02: ^ Stmt 
@@ -87,18 +87,20 @@ Shift: ^ Stmt do {
 Shift: ^ Stmt do { if 
 Shift: ^ Stmt do { if ( 
 Shift: ^ Stmt do { if ( number 
-Red17: ^ Stmt do { if ( Atom 
-Red19: ^ Stmt do { if ( Expr 
+Red18: ^ Stmt do { if ( Atom 
+Red20: ^ Stmt do { if ( Expr 
 Shift: ^ Stmt do { if ( Expr % 
-Shift: ^ Stmt do { if ( Expr % 3
-Red18: ^ Stmt do { if ( Expr % Atom 
-Red19: ^ Stmt do { if ( Expr % Expr 
-Red37: ^ Stmt do { if ( Bexp 
+Shift: ^ Stmt do { if ( Expr % 3 
+Red19: ^ Stmt do { if ( Expr % Atom 
+Red20: ^ Stmt do { if ( Expr % Expr 
+Red39: ^ Stmt do { if ( Bexp 
+Red22: ^ Stmt do { if ( Expr 
+Shift: ^ Stmt do { if ( Expr == 
 ...
-Red20: ^ Stmt do { Stmt Stmt } while Expr 
+Red21: ^ Stmt do { Stmt Stmt } while Expr 
 Shift: ^ Stmt do { Stmt Stmt } while Expr ; 
-Red15: ^ Stmt Dowh 
-Red10: ^ Stmt Ctrl 
+Red16: ^ Stmt Dowh 
+Red11: ^ Stmt Ctrl 
 Red04: ^ Stmt Stmt 
 Shift: ^ Stmt Stmt $ 
 Red01: Unit 
@@ -127,3 +129,4 @@ Buzz 96
 97
 98
 Buzz 99
+Fizz 100
