@@ -2,15 +2,17 @@
 
 This is a hackable and extensible lexer, parser and interpreter for a minimalistic, imperative, C-like language. It can also be used as an educational tool for understanding lexing and parsing.
 
-## How it works?
+## How does it work?
 
-The lexer produces a list of tokens from the input. It produces each token by consuming a character from the input and then asking each of the token functions whether they accept it. Each token function has an internal state and can return any of `STS_ACCEPT`, `STS_REJECT` or `STS_HUNGRY` on each character consumed. The lexer reads in characters until all of the functions return `STS_REJECT`, and then looks back which is the accepted token. Essentially, this is a "maximal munch" algorithm.
+The lexer produces a list of tokens from the input (a `PROT_READ` memory-mapped file). Each indidivual token is produced by consuming a character from the input and then asking each of the token functions whether they accept it. Each such a token function has an internal state and can return any of `STS_ACCEPT`, `STS_REJECT` or `STS_HUNGRY` on a character consumed. The lexer reads in characters until all of the functions return `STS_REJECT` (at which point they reset their internal state), and then the accepted token is determined by looking back for an `STS_ACCEPT` from the previous iteration.
 
-The parser takes the list of tokens and produces a tree. It does that by continously shifting tokens off the input to the parse stack and then reducing the shortest matching suffix of the stack to a non-terminal, according to the rules of the grammar. The grammar is defined as a static array of structs, where each struct is a rule. When a rule matches a suffix of the stack, a reduction is made. The reduction essentially creates a single level of child nodes (the symbols that matched the rule) and they get parented by a new non-terminal symbol on the stack (the left-hand side of the matching rule). In effect, this is a shift-reduce, bottom-up parser.
+Essentially, this is a "maximal munch" algorithm.
 
-Because the parser has no state and decision tables, a few additional hacks are implemented in order to support operator precedence and if-elif-else chains.
+The parser takes the list of tokens and produces a tree. It does that by continuously shifting tokens off the input to the parse stack and then reducing any matching suffix of the stack to a non-terminal, according to the rules of the grammar. The grammar is defined as a static array of structs, where each struct is a rule. When a rule matches a suffix of the stack, a reduction is made. The reduction essentially creates a single level of child nodes (the symbols that matched the rule) and they get parented by a new non-terminal symbol on the stack (the left-hand side of the matching rule).
 
-The interpreter is really straightforward. It starts from the top of the parse tree and walks down through the child nodes, executing the statements and evaluating the expressions.
+In effect, this is a shift-reduce, bottom-up parser. Because the parser has no state and decision tables, a few additional hacks are implemented in order to support operator precedence and if-elif-else chains.
+
+The interpreter is really straightforward. It starts from the top of the parse tree and walks down through the child nodes, executing the statements and evaluating the expressions. Any warnings during the execution of the program are written to standard error with a `warn:` prefix.
 
 ## The Language
 
@@ -19,7 +21,7 @@ The interpreter is really straightforward. It starts from the top of the parse t
   * `while (Expr) { N✕Stmt }` 
   * `do { N✕Stmt } while (Expr);`
 
-* Variable and array assignment (integers only, `var` is equivalent to `var[0]`):
+* Variable and array assignment (integers only, `Name` is equivalent to `Name[0]`):
   * `Name = Expr;`
   * `Name[Expr] = Expr;`
 
@@ -46,7 +48,7 @@ The interpreter is really straightforward. It starts from the top of the parse t
 ## Sample Output
 You start the interpreter by specifying the file containing the code.
 
-Once the file is opened and mapped into memory successfully, the lexer starts. The tokens will be written to standard output as they appear in the file, in alternating colors (green and yellow), so that you can clearly see where each token starts and ends.
+Once the file is opened and mapped into memory, the lexer starts. The tokens will be written to standard output as they appear in the file, in alternating colours (green and yellow), so that you can clearly see where each token starts and ends.
 
 If the lexing was successful (all the tokens were recognised), the parser starts. On each shift or reduce operation, it outputs a single line with the current contents of the parse stack. Non-terminals are in yellow, terminals are in green. Finally, if the parsing was successful, the parse stack should contain a single non-terminal called "Unit".
 
