@@ -29,7 +29,7 @@ The interpreter is really straightforward. It starts from the top of the parse t
   * `print "Placeholder: " Expr;`
   * `print Expr;`
 
-* Parenthesized expressions (integers only):
+* Parenthesised expressions (integers only):
   * `(Expr)`
 
 * Binary expressions (between two integers):
