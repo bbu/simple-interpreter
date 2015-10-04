@@ -262,6 +262,10 @@ static inline int should_shift_pre(
     const struct token *const tokens,
     size_t *const token_idx)
 {
+    if (rule->lhs == NT_Unit) {
+        return 0;
+    }
+
     while (SKIP_TOKEN(tokens[*token_idx].tk)) {
         ++(*token_idx);
     }
@@ -313,6 +317,10 @@ static inline int should_shift_post(
     const struct token *const tokens,
     size_t *const token_idx)
 {
+    if (rule->lhs == NT_Unit) {
+        return 0;
+    }
+
     while (SKIP_TOKEN(tokens[*token_idx].tk)) {
         ++(*token_idx);
     }
