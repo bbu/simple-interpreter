@@ -1,7 +1,7 @@
+#include "lex.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "lex.h"
 
 enum {
     STS_ACCEPT,
@@ -23,9 +23,9 @@ typedef uint8_t sts_t;
 static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
     switch (*s) { \
-        case 0: return c == (str)[0] ? TR(1, ACCEPT) : REJECT; \
-        case 1: return REJECT; \
-        default: return -1; \
+    case 0: return c == (str)[0] ? TR(1, ACCEPT) : REJECT; \
+    case 1: return REJECT; \
+    default: return -1; \
     } \
 }
 
@@ -33,10 +33,10 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
 static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
     switch (*s) { \
-        case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
-        case 1: return c == (str)[1] ? TR(2, ACCEPT) : REJECT; \
-        case 2: return REJECT; \
-        default: return -1; \
+    case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
+    case 1: return c == (str)[1] ? TR(2, ACCEPT) : REJECT; \
+    case 2: return REJECT; \
+    default: return -1; \
     } \
 }
 
@@ -44,11 +44,11 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
 static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
     switch (*s) { \
-        case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
-        case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
-        case 2: return c == (str)[2] ? TR(3, ACCEPT) : REJECT; \
-        case 3: return REJECT; \
-        default: return -1; \
+    case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
+    case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
+    case 2: return c == (str)[2] ? TR(3, ACCEPT) : REJECT; \
+    case 3: return REJECT; \
+    default: return -1; \
     } \
 }
 
@@ -56,12 +56,12 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
 static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
     switch (*s) { \
-        case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
-        case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
-        case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
-        case 3: return c == (str)[3] ? TR(4, ACCEPT) : REJECT; \
-        case 4: return REJECT; \
-        default: return -1; \
+    case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
+    case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
+    case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
+    case 3: return c == (str)[3] ? TR(4, ACCEPT) : REJECT; \
+    case 4: return REJECT; \
+    default: return -1; \
     } \
 }
 
@@ -69,13 +69,13 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
 static sts_t token(const uint8_t c, uint8_t *const s) \
 { \
     switch (*s) { \
-        case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
-        case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
-        case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
-        case 3: return c == (str)[3] ? TR(4, HUNGRY) : REJECT; \
-        case 4: return c == (str)[4] ? TR(5, ACCEPT) : REJECT; \
-        case 5: return REJECT; \
-        default: return -1; \
+    case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
+    case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
+    case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
+    case 3: return c == (str)[3] ? TR(4, HUNGRY) : REJECT; \
+    case 4: return c == (str)[4] ? TR(5, ACCEPT) : REJECT; \
+    case 5: return REJECT; \
+    default: return -1; \
     } \
 }
 
@@ -94,8 +94,7 @@ static sts_t tk_name(const uint8_t c, uint8_t *const s)
         return IS_ALNUM(c) || (c == '_') ? STS_ACCEPT : REJECT;
     }
 
-    /* unreachable, but keeps the compiler happy */
-    return 0;
+    abort();
 }
 
 static sts_t tk_nmbr(const uint8_t c, uint8_t *const s)
@@ -122,8 +121,7 @@ static sts_t tk_strl(const uint8_t c, uint8_t *const s)
         return REJECT;
     }
 
-    /* unreachable, but keeps the compiler happy */
-    return 0;
+    abort();
 }
 
 static sts_t tk_wspc(const uint8_t c, uint8_t *const s)
@@ -141,8 +139,7 @@ static sts_t tk_wspc(const uint8_t c, uint8_t *const s)
         return IS_WSPACE(c) ? STS_ACCEPT : REJECT;
     }
 
-    /* unreachable, but keeps the compiler happy */
-    return 0;
+    abort();
 }
 
 static sts_t tk_lcom(const uint8_t c, uint8_t *const s)
@@ -168,8 +165,7 @@ static sts_t tk_lcom(const uint8_t c, uint8_t *const s)
         return REJECT;
     }
 
-    /* unreachable, but keeps the compiler happy */
-    return 0;
+    abort();
 }
 
 static sts_t tk_bcom(const uint8_t c, uint8_t *const s)
@@ -199,8 +195,7 @@ static sts_t tk_bcom(const uint8_t c, uint8_t *const s)
         return REJECT;
     }
 
-    /* unreachable, but keeps the compiler happy */
-    return 0;
+    abort();
 }
 
 TOKEN_DEFINE_1(tk_lpar, "(")
@@ -234,7 +229,7 @@ TOKEN_DEFINE_1(tk_scol, ";")
 TOKEN_DEFINE_1(tk_ques, "?")
 TOKEN_DEFINE_1(tk_coln, ":")
 
-static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
+static sts_t (*const token_funcs[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_name,
     tk_nmbr,
     tk_strl,
@@ -273,40 +268,34 @@ static sts_t (*const tokens[TK_COUNT])(const uint8_t, uint8_t *const) = {
     tk_coln,
 };
 
-static inline int push_token(
-    struct token **const ranges,
-    size_t *const nranges,
-    size_t *const allocated,
-    const tk_t token,
-    const uint8_t *const beg,
-    const uint8_t *const end)
+static inline int push_token(struct token **const tokens,
+    size_t *const ntokens, size_t *const allocated, const tk_t token,
+    const uint8_t *const beg, const uint8_t *const end)
 {
-    if (*nranges >= *allocated) {
+    if (*ntokens >= *allocated) {
         *allocated = (*allocated ?: 1) * 8;
 
-        struct token *const tmp = 
-            realloc(*ranges, *allocated * sizeof(struct token));
+        struct token *const tmp =
+            realloc(*tokens, *allocated * sizeof(struct token));
 
-        if (tmp == NULL) {
-            free(*ranges);
-            *ranges = NULL;
-            return -1;
-        } else {
-            *ranges = tmp;
+        if (!tmp) {
+            return free(*tokens), *tokens = NULL, LEX_NOMEM;
         }
+
+        *tokens = tmp;
     }
 
-    (*ranges)[(*nranges)++] = (struct token) {
+    (*tokens)[(*ntokens)++] = (struct token) {
         .beg = beg,
         .end = end,
         .tk = token
     };
 
-    return 0;
+    return LEX_OK;
 }
 
 int lex(const uint8_t *const input, const size_t size,
-    struct token **const ranges, size_t *const nranges)
+    struct token **const tokens, size_t *const ntokens)
 {
     static struct {
         sts_t prev, curr;
@@ -319,68 +308,69 @@ int lex(const uint8_t *const input, const size_t size,
     const uint8_t *prefix_beg = input, *prefix_end = input;
     tk_t accepted_token;
     size_t allocated = 0;
-    *ranges = NULL, *nranges = 0;
+    *tokens = NULL, *ntokens = 0;
 
     #define PUSH_OR_NOMEM(tk, beg, end) \
-        if (push_token(ranges, nranges, &allocated, (tk), (beg), (end))) { \
+        if (push_token(tokens, ntokens, &allocated, (tk), (beg), (end))) { \
             return LEX_NOMEM; \
         }
 
-    #define foreach_token \
-        for (tk_t token = 0; token < TK_COUNT; ++token)
+    #define foreach_tk \
+        for (tk_t tk = 0; tk < TK_COUNT; ++tk)
 
     PUSH_OR_NOMEM(TK_FBEG, NULL, NULL);
 
     while (prefix_end < input + size) {
         int did_accept = 0;
 
-        foreach_token {
-            if (statuses[token].prev != STS_REJECT) {
-                statuses[token].curr = tokens[token](*prefix_end, &states[token]);
+        foreach_tk {
+            if (statuses[tk].prev != STS_REJECT) {
+                statuses[tk].curr = token_funcs[tk](*prefix_end, &states[tk]);
             }
 
-            if (statuses[token].curr != STS_REJECT) {
+            if (statuses[tk].curr != STS_REJECT) {
                 did_accept = 1;
             }
         }
 
-        if (!did_accept) {
+        if (did_accept) {
+            prefix_end++;
+
+            foreach_tk {
+                statuses[tk].prev = statuses[tk].curr;
+            }
+        } else {
             accepted_token = TK_COUNT;
 
-            foreach_token {
-                if (statuses[token].prev == STS_ACCEPT) {
-                    accepted_token = token;
+            foreach_tk {
+                if (statuses[tk].prev == STS_ACCEPT) {
+                    accepted_token = tk;
                 }
 
-                statuses[token].prev = STS_HUNGRY;
-                statuses[token].curr = STS_REJECT;
+                statuses[tk].prev = STS_HUNGRY;
+                statuses[tk].curr = STS_REJECT;
             }
 
             PUSH_OR_NOMEM(accepted_token, prefix_beg, prefix_end);
 
             if (accepted_token == TK_COUNT) {
+                (*tokens)[*ntokens - 1].end++;
                 return LEX_UNKNOWN_TOKEN;
-            } else {
-                prefix_beg = prefix_end;
             }
-        } else {
-            prefix_end++;
 
-            foreach_token {
-                statuses[token].prev = statuses[token].curr;
-            }
+            prefix_beg = prefix_end;
         }
     }
 
     accepted_token = TK_COUNT;
 
-    foreach_token {
-        if (statuses[token].curr == STS_ACCEPT) {
-            accepted_token = token;
+    foreach_tk {
+        if (statuses[tk].curr == STS_ACCEPT) {
+            accepted_token = tk;
         }
 
-        statuses[token].prev = STS_HUNGRY;
-        statuses[token].curr = STS_REJECT;
+        statuses[tk].prev = STS_HUNGRY;
+        statuses[tk].curr = STS_REJECT;
     }
 
     PUSH_OR_NOMEM(accepted_token, prefix_beg, prefix_end);
@@ -393,5 +383,5 @@ int lex(const uint8_t *const input, const size_t size,
     return LEX_OK;
 
     #undef PUSH_OR_NOMEM
-    #undef foreach_token
+    #undef foreach_tk
 }

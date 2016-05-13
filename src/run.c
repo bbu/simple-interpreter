@@ -1,9 +1,9 @@
+#include "lex.h"
+#include "parse.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "lex.h"
-#include "parse.h"
 
 static void run_stmt(const struct node *const);
 static void run_assn(const struct node *const);

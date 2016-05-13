@@ -1,3 +1,7 @@
+#include "lex.h"
+#include "parse.h"
+#include "run.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -6,10 +10,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-
-#include "lex.h"
-#include "parse.h"
-#include "run.h"
 
 static void print_tokens(const struct token *const tokens,
     const size_t ntokens, const int error)

@@ -1,18 +1,18 @@
+#include "parse.h"
+#include "lex.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
 
-#include "lex.h"
-#include "parse.h"
-
 #define RULE_RHS_LAST 8
-#define STACK_MAX_DEPTH 256
 #define GRAMMAR_SIZE (sizeof(grammar) / sizeof(*grammar))
 #define SKIP_TOKEN(t) ((t) == TK_WSPC || (t) == TK_LCOM || (t) == TK_BCOM)
 
 static struct {
-    size_t size;
-    struct node nodes[STACK_MAX_DEPTH];
+    size_t size, allocated;
+    struct node *nodes;
 } stack;
 
 struct term {
@@ -191,11 +191,21 @@ static void destroy_node(const struct node *const node)
     }
 }
 
+static void deallocate_stack(void)
+{
+    free(stack.nodes);
+    stack.nodes = NULL;
+    stack.size = 0;
+    stack.allocated = 0;
+}
+
 static void destroy_stack(void)
 {
     for (size_t node_idx = 0; node_idx < stack.size; ++node_idx) {
         destroy_node(&stack.nodes[node_idx]);
     }
+
+    deallocate_stack();
 }
 
 static inline int term_eq_node(
@@ -245,8 +255,17 @@ static size_t match_rule(const struct rule *const rule, size_t *const at)
 
 static inline int shift(const struct token *const token)
 {
-    if (stack.size >= STACK_MAX_DEPTH) {
-        return -1;
+    if (stack.size >= stack.allocated) {
+        stack.allocated = (stack.allocated ?: 1) * 8;
+
+        struct node *const tmp = realloc(stack.nodes,
+            stack.allocated * sizeof(struct node));
+
+        if (!tmp) {
+            return PARSE_NOMEM;
+        }
+
+        stack.nodes = tmp;
     }
 
     stack.nodes[stack.size++] = (struct node) {
@@ -254,87 +273,79 @@ static inline int shift(const struct token *const token)
         .token = token,
     };
 
-    return 0;
+    return PARSE_OK;
 }
 
-static inline int should_shift_pre(
+static inline bool should_shift_pre(
     const struct rule *const rule,
     const struct token *const tokens,
     size_t *const token_idx)
 {
     if (rule->lhs == NT_Unit) {
-        return 0;
+        return false;
     }
 
     while (SKIP_TOKEN(tokens[*token_idx].tk)) {
-        ++(*token_idx);
+        ++*token_idx;
     }
 
-    const struct token *ahead;
+    const struct token *const ahead = &tokens[*token_idx];
 
-    if (rule->lhs == NT_Bexp) {
+    if (rule->lhs == NT_Bexp && ahead->tk >= TK_EQUL && ahead->tk <= TK_MODU) {
         /*
             Check whether the operator ahead has a lower precedence. If it has,
             let the parser shift it before applying the Bexp reduction.
         */
-        ahead = &tokens[*token_idx];
+        const uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
+        const uint8_t p2 = precedence[ahead->tk - TK_EQUL];
 
-        if (ahead->tk >= TK_EQUL && ahead->tk <= TK_MODU) {
-            uint8_t p1 = precedence[rule->rhs[RULE_RHS_LAST - 1].tk - TK_EQUL];
-            uint8_t p2 = precedence[ahead->tk - TK_EQUL];
-
-            if (p2 < p1) {
-                return 1;
-            }
+        if (p2 < p1) {
+            return true;
         }
     } else if (rule->lhs == NT_Atom && rule->rhs[RULE_RHS_LAST].tk == TK_NAME) {
         /*
             Do not allow the left side of an assignment or an array name to
             escalate to Expr.
         */
-        ahead = &tokens[*token_idx];
-
         if (ahead->tk == TK_ASSN || ahead->tk == TK_LBRA) {
-            return 1;
+            return true;
         }
     } else if (rule->lhs == NT_Expr && rule->rhs[RULE_RHS_LAST].nt == NT_Aexp) {
         /*
             Do not allow an Aexp on the left side of an assignment to escalate
             to Expr.
         */
-        ahead = &tokens[*token_idx];
-
         if (ahead->tk == TK_ASSN) {
-            return 1;
+            return true;
         }
     }
 
-    return 0;
+    return false;
 }
 
-static inline int should_shift_post(
+static inline bool should_shift_post(
     const struct rule *const rule,
     const struct token *const tokens,
     size_t *const token_idx)
 {
     if (rule->lhs == NT_Unit) {
-        return 0;
+        return false;
     }
 
     while (SKIP_TOKEN(tokens[*token_idx].tk)) {
-        ++(*token_idx);
+        ++*token_idx;
     }
+
+    const struct token *const ahead = &tokens[*token_idx];
 
     if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
         /* dirty hack to parse if-elif-else chains */
-        const struct token *const ahead = &tokens[*token_idx];
-
         if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
-            return 1;
+            return true;
         }
     }
 
-    return 0;
+    return false;
 }
 
 static int reduce(const struct rule *const rule,
@@ -343,7 +354,7 @@ static int reduce(const struct rule *const rule,
     struct node *const child_nodes = malloc(size * sizeof(struct node));
 
     if (!child_nodes) {
-        return -1;
+        return PARSE_NOMEM;
     }
 
     struct node *const reduce_at = &stack.nodes[at];
@@ -351,7 +362,7 @@ static int reduce(const struct rule *const rule,
     reduce_at->children = malloc(size * sizeof(struct node *)) ?: old_children;
 
     if (reduce_at->children == old_children) {
-        return free(child_nodes), -1;
+        return free(child_nodes), PARSE_NOMEM;
     }
 
     for (size_t child_idx = 0, st_idx = at;
@@ -366,22 +377,30 @@ static int reduce(const struct rule *const rule,
     reduce_at->nchildren = size;
     reduce_at->nt = rule->lhs;
     stack.size = at + 1;
-    return 0;
+    return PARSE_OK;
 }
 
 struct node parse(const struct token *const tokens, const size_t ntokens)
 {
     static const struct token
-        reject       = { .tk = PARSE_REJECT   },
-        nomem        = { .tk = PARSE_NOMEM    },
-        overflow     = { .tk = PARSE_OVERFLOW };
+        reject = { .tk = PARSE_REJECT },
+        nomem  = { .tk = PARSE_NOMEM  };
 
     static const struct node
-        err_reject   = { .nchildren = 0, .token = &reject   },
-        err_nomem    = { .nchildren = 0, .token = &nomem    },
-        err_overflow = { .nchildren = 0, .token = &overflow };
+        err_reject = { .nchildren = 0, .token = &reject },
+        err_nomem  = { .nchildren = 0, .token = &nomem  };
 
-    stack.size = 0;
+    #define SHIFT_OR_NOMEM(t) \
+        if (shift(t)) { \
+            puts(RED("Out of memory on shift!")); \
+            return destroy_stack(), err_nomem; \
+        }
+
+    #define REDUCE_OR_NOMEM(r, a, s) \
+        if (reduce(r, a, s)) { \
+            puts(RED("Out of memory on reduce!")); \
+            return destroy_stack(), err_nomem; \
+        }
 
     for (size_t token_idx = 0; token_idx < ntokens; ) {
         if (SKIP_TOKEN(tokens[token_idx].tk)) {
@@ -389,11 +408,7 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
             continue;
         }
 
-        if (shift(&tokens[token_idx++])) {
-            puts(RED("Stack depth exceeded!"));
-            return destroy_stack(), err_overflow;
-        }
-
+        SHIFT_OR_NOMEM(&tokens[token_idx++]);
         printf(CYAN("Shift: ")), print_stack();
 
         try_reduce_again:;
@@ -403,24 +418,16 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
             size_t reduction_at, reduction_size;
 
             if ((reduction_size = match_rule(rule, &reduction_at))) {
-                const int do_shift = should_shift_pre(rule, tokens, &token_idx);
+                const bool do_shift = should_shift_pre(rule, tokens, &token_idx);
 
                 if (!do_shift) {
-                    if (reduce(rule, reduction_at, reduction_size)) {
-                        puts(RED("Out of memory!"));
-                        return destroy_stack(), err_nomem;
-                    }
-
+                    REDUCE_OR_NOMEM(rule, reduction_at, reduction_size);
                     const ptrdiff_t rule_number = rule - grammar + 1;
                     printf(ORANGE("Red%02td: "), rule_number), print_stack();
                 }
 
                 if (do_shift || should_shift_post(rule, tokens, &token_idx)) {
-                    if (shift(&tokens[token_idx++])) {
-                        puts(RED("Stack depth exceeded!"));
-                        return destroy_stack(), err_overflow;
-                    }
-
+                    SHIFT_OR_NOMEM(&tokens[token_idx++]);
                     printf(CYAN("Shift: ")), print_stack();
                 }
 
@@ -429,11 +436,20 @@ struct node parse(const struct token *const tokens, const size_t ntokens)
         } while (++rule != grammar + GRAMMAR_SIZE);
     }
 
+    #undef SHIFT_OR_NOMEM
+    #undef REDUCE_OR_NOMEM
+
     const int accepted = stack.size == 1 &&
         stack.nodes[0].nchildren && stack.nodes[0].nt == NT_Unit;
 
     printf(accepted ? GREEN("ACCEPT ") : RED("REJECT ")), print_stack();
-    return accepted ? stack.nodes[0] : (destroy_stack(), err_reject);
+
+    if (accepted) {
+        const struct node ret = stack.nodes[0];
+        return deallocate_stack(), ret;
+    } else {
+        return destroy_stack(), err_reject;
+    }
 }
 
 void destroy_tree(const struct node root)

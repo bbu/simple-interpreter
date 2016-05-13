@@ -47,7 +47,6 @@ enum {
     PARSE_OK,
     PARSE_REJECT,
     PARSE_NOMEM,
-    PARSE_OVERFLOW,
 };
 
 #define parse_error(root) ({ \
