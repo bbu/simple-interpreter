@@ -25,7 +25,7 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
     switch (*s) { \
     case 0: return c == (str)[0] ? TR(1, ACCEPT) : REJECT; \
     case 1: return REJECT; \
-    default: return -1; \
+    default: abort(); \
     } \
 }
 
@@ -36,7 +36,7 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
     case 0: return c == (str)[0] ? TR(1, HUNGRY) : REJECT; \
     case 1: return c == (str)[1] ? TR(2, ACCEPT) : REJECT; \
     case 2: return REJECT; \
-    default: return -1; \
+    default: abort(); \
     } \
 }
 
@@ -48,7 +48,7 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
     case 1: return c == (str)[1] ? TR(2, HUNGRY) : REJECT; \
     case 2: return c == (str)[2] ? TR(3, ACCEPT) : REJECT; \
     case 3: return REJECT; \
-    default: return -1; \
+    default: abort(); \
     } \
 }
 
@@ -61,7 +61,7 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
     case 2: return c == (str)[2] ? TR(3, HUNGRY) : REJECT; \
     case 3: return c == (str)[3] ? TR(4, ACCEPT) : REJECT; \
     case 4: return REJECT; \
-    default: return -1; \
+    default: abort(); \
     } \
 }
 
@@ -75,7 +75,7 @@ static sts_t token(const uint8_t c, uint8_t *const s) \
     case 3: return c == (str)[3] ? TR(4, HUNGRY) : REJECT; \
     case 4: return c == (str)[4] ? TR(5, ACCEPT) : REJECT; \
     case 5: return REJECT; \
-    default: return -1; \
+    default: abort(); \
     } \
 }
 
