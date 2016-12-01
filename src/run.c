@@ -59,7 +59,7 @@ static void run_stmt(const struct node *const stmt)
         break;
 
     default:
-        break;
+        abort();
     }
 }
 
@@ -154,7 +154,7 @@ static void run_prnt(const struct node *const prnt)
     if (prnt->nchildren == 3) {
         printf("%d\n", eval_expr(prnt->children[1]));
     } else if (prnt->nchildren == 4) {
-        struct node *strl = prnt->children[1];
+        const struct node *const strl = prnt->children[1];
 
         const uint8_t *const beg = strl->token->beg + 1;
         const uint8_t *const end = strl->token->end - 1;
@@ -230,7 +230,7 @@ static void run_ctrl(const struct node *const ctrl)
     } break;
 
     default:
-        break;
+        abort();
     }
 }
 
@@ -269,7 +269,7 @@ static int eval_atom(const struct node *const atom)
     }
 
     default:
-        return 0;
+        abort();
     }
 }
 
@@ -295,7 +295,7 @@ static int eval_expr(const struct node *const expr)
         return eval_aexp(expr->children[0]);
 
     default:
-        return 0;
+        abort();
     }
 }
 
@@ -356,7 +356,7 @@ static int eval_bexp(const struct node *const bexp)
         return eval_expr(bexp->children[0]) || eval_expr(bexp->children[2]);
 
     default:
-        return 0;
+        abort();
     }
 }
 
@@ -373,7 +373,7 @@ static int eval_uexp(const struct node *const uexp)
         return !eval_expr(uexp->children[1]);
 
     default:
-        return 0;
+        abort();
     }
 }
 

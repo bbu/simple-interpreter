@@ -99,6 +99,7 @@ static sts_t tk_name(const uint8_t c, uint8_t *const s)
 
 static sts_t tk_nmbr(const uint8_t c, uint8_t *const s)
 {
+    (void) s;
     return IS_DIGIT(c) ? STS_ACCEPT : STS_REJECT;
 }
 

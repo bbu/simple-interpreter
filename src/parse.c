@@ -4,38 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <assert.h>
 
-#define RULE_RHS_LAST 8
+#define RULE_RHS_LAST 7
 #define GRAMMAR_SIZE (sizeof(grammar) / sizeof(*grammar))
 #define SKIP_TOKEN(t) ((t) == TK_WSPC || (t) == TK_LCOM || (t) == TK_BCOM)
-
-static struct {
-    size_t size, allocated;
-    struct node *nodes;
-} stack;
-
-struct term {
-    /* a rule RHS term is either a terminal token or a non-terminal */
-    union {
-        const tk_t tk;
-        const nt_t nt;
-    };
-
-    /* indicates which field of the above union to use */
-    const uint8_t is_tk: 1;
-
-    /* indicates that the non-terminal can be matched multiple times */
-    const uint8_t is_mt: 1;
-};
-
-struct rule {
-    /* left-hand side of rule */
-    const nt_t lhs;
-
-    /* right-hand side of rule */
-    const struct term rhs[RULE_RHS_LAST + 1];
-};
 
 #define n(_nt) { .nt = NT_##_nt, .is_tk = 0, .is_mt = 0 }
 #define m(_nt) { .nt = NT_##_nt, .is_tk = 0, .is_mt = 1 }
@@ -43,80 +15,96 @@ struct rule {
 #define no     { .tk = TK_COUNT, .is_tk = 1, .is_mt = 0 }
 
 #define r1(_lhs, t1) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, no, no, no, t1, } },
+    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, no, no, t1, } },
 #define r2(_lhs, t1, t2) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, no, no, t1, t2, } },
+    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, no, t1, t2, } },
 #define r3(_lhs, t1, t2, t3) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, no, t1, t2, t3, } },
+    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, t1, t2, t3, } },
 #define r4(_lhs, t1, t2, t3, t4) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, no, t1, t2, t3, t4, } },
+    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, t1, t2, t3, t4, } },
 #define r5(_lhs, t1, t2, t3, t4, t5) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, no, no, t1, t2, t3, t4, t5, } },
+    { .lhs = NT_##_lhs, .rhs = { no, no, no, t1, t2, t3, t4, t5, } },
 #define r6(_lhs, t1, t2, t3, t4, t5, t6) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, no, t1, t2, t3, t4, t5, t6, } },
+    { .lhs = NT_##_lhs, .rhs = { no, no, t1, t2, t3, t4, t5, t6, } },
 #define r7(_lhs, t1, t2, t3, t4, t5, t6, t7) \
-    { .lhs = NT_##_lhs, .rhs = { no, no, t1, t2, t3, t4, t5, t6, t7, } },
-#define r8(_lhs, t1, t2, t3, t4, t5, t6, t7, t8) \
-    { .lhs = NT_##_lhs, .rhs = { no, t1, t2, t3, t4, t5, t6, t7, t8, } },
+    { .lhs = NT_##_lhs, .rhs = { no, t1, t2, t3, t4, t5, t6, t7, } },
 
-static const struct rule grammar[] = {
-    r3(Unit, t(FBEG), m(Stmt), t(FEND)                                     )
+static const struct rule {
+    /* left-hand side of production */
+    const nt_t lhs;
 
-    r1(Stmt, n(Assn)                                                       )
-    r1(Stmt, n(Prnt)                                                       )
-    r1(Stmt, n(Ctrl)                                                       )
+    /* array of RULE_RHS_LAST + 1 terms which form the right-hand side */
+    const struct term {
+        /* a rule RHS term is either a terminal token or a non-terminal */
+        union {
+            const tk_t tk;
+            const nt_t nt;
+        };
 
-    r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)                            )
-    r4(Assn, n(Aexp), t(ASSN), n(Expr), t(SCOL)                            )
+        /* indicates which field of the above union to use */
+        const uint8_t is_tk: 1;
 
-    r3(Prnt, t(PRNT), n(Expr), t(SCOL)                                     )
-    r4(Prnt, t(PRNT), t(STRL), n(Expr), t(SCOL)                            )
+        /* indicates that the non-terminal can be matched multiple times */
+        const uint8_t is_mt: 1;
+    } rhs[RULE_RHS_LAST + 1];
+} grammar[] = {
+    r3(Unit, t(FBEG), m(Stmt), t(FEND)                                         )
 
-    r2(Ctrl, n(Cond), m(Elif)                                              )
-    r3(Ctrl, n(Cond), m(Elif), n(Else)                                     )
-    r1(Ctrl, n(Dowh)                                                       )
-    r1(Ctrl, n(Whil)                                                       )
+    r1(Stmt, n(Assn)                                                           )
+    r1(Stmt, n(Prnt)                                                           )
+    r1(Stmt, n(Ctrl)                                                           )
 
-    r5(Cond, t(COND), n(Expr), t(LBRC), m(Stmt), t(RBRC)                   )
-    r5(Elif, t(ELIF), n(Expr), t(LBRC), m(Stmt), t(RBRC)                   )
-    r4(Else, t(ELSE), t(LBRC), m(Stmt), t(RBRC)                            )
+    r4(Assn, t(NAME), t(ASSN), n(Expr), t(SCOL)                                )
+    r4(Assn, n(Aexp), t(ASSN), n(Expr), t(SCOL)                                )
 
-    r7(Dowh, t(DOWH), t(LBRC), m(Stmt), t(RBRC), t(WHIL), n(Expr), t(SCOL) )
-    r5(Whil, t(WHIL), n(Expr), t(LBRC), m(Stmt), t(RBRC)                   )
+    r3(Prnt, t(PRNT), n(Expr), t(SCOL)                                         )
+    r4(Prnt, t(PRNT), t(STRL), n(Expr), t(SCOL)                                )
 
-    r1(Atom, t(NAME)                                                       )
-    r1(Atom, t(NMBR)                                                       )
+    r2(Ctrl, n(Cond), m(Elif)                                                  )
+    r3(Ctrl, n(Cond), m(Elif), n(Else)                                         )
+    r1(Ctrl, n(Dowh)                                                           )
+    r1(Ctrl, n(Whil)                                                           )
 
-    r1(Expr, n(Atom)                                                       )
-    r1(Expr, n(Pexp)                                                       )
-    r1(Expr, n(Bexp)                                                       )
-    r1(Expr, n(Uexp)                                                       )
-    r1(Expr, n(Texp)                                                       )
-    r1(Expr, n(Aexp)                                                       )
+    r5(Cond, t(COND), n(Expr), t(LBRC), m(Stmt), t(RBRC)                       )
+    r5(Elif, t(ELIF), n(Expr), t(LBRC), m(Stmt), t(RBRC)                       )
+    r4(Else, t(ELSE), t(LBRC), m(Stmt), t(RBRC)                                )
 
-    r3(Pexp, t(LPAR), n(Expr), t(RPAR)                                     )
+    r7(Dowh, t(DOWH), t(LBRC), m(Stmt), t(RBRC), t(WHIL), n(Expr), t(SCOL)     )
+    r5(Whil, t(WHIL), n(Expr), t(LBRC), m(Stmt), t(RBRC)                       )
 
-    r3(Bexp, n(Expr), t(EQUL), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(NEQL), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(LTHN), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(GTHN), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(LTEQ), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(GTEQ), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(CONJ), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(DISJ), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(PLUS), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(MINS), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(MULT), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(DIVI), n(Expr)                                     )
-    r3(Bexp, n(Expr), t(MODU), n(Expr)                                     )
+    r1(Atom, t(NAME)                                                           )
+    r1(Atom, t(NMBR)                                                           )
 
-    r2(Uexp, t(PLUS), n(Expr)                                              )
-    r2(Uexp, t(MINS), n(Expr)                                              )
-    r2(Uexp, t(NEGA), n(Expr)                                              )
+    r1(Expr, n(Atom)                                                           )
+    r1(Expr, n(Pexp)                                                           )
+    r1(Expr, n(Bexp)                                                           )
+    r1(Expr, n(Uexp)                                                           )
+    r1(Expr, n(Texp)                                                           )
+    r1(Expr, n(Aexp)                                                           )
 
-    r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr)                   )
+    r3(Pexp, t(LPAR), n(Expr), t(RPAR)                                         )
 
-    r4(Aexp, t(NAME), t(LBRA), n(Expr), t(RBRA)                            )
+    r3(Bexp, n(Expr), t(EQUL), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(NEQL), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(LTHN), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(GTHN), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(LTEQ), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(GTEQ), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(CONJ), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(DISJ), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(PLUS), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(MINS), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(MULT), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(DIVI), n(Expr)                                         )
+    r3(Bexp, n(Expr), t(MODU), n(Expr)                                         )
+
+    r2(Uexp, t(PLUS), n(Expr)                                                  )
+    r2(Uexp, t(MINS), n(Expr)                                                  )
+    r2(Uexp, t(NEGA), n(Expr)                                                  )
+
+    r5(Texp, n(Expr), t(QUES), n(Expr), t(COLN), n(Expr)                       )
+
+    r4(Aexp, t(NAME), t(LBRA), n(Expr), t(RBRA)                                )
 };
 
 #undef r1
@@ -126,7 +114,6 @@ static const struct rule grammar[] = {
 #undef r5
 #undef r6
 #undef r7
-#undef r8
 
 #undef n
 #undef m
@@ -137,9 +124,14 @@ static const uint8_t precedence[TK_MODU - TK_EQUL + 1] = {
     4, 4, 3, 3, 3, 3, 5, 6, 2, 2, 1, 1, 1,
 };
 
+static struct {
+    size_t size, allocated;
+    struct node *nodes;
+} stack;
+
 static void print_stack(void)
 {
-    static const char *const nts[] = {
+    static const char *const nts[NT_COUNT] = {
         "Unit",
         "Stmt",
         "Assn",
@@ -158,8 +150,6 @@ static void print_stack(void)
         "Texp",
         "Aexp",
     };
-
-    assert(sizeof(nts) / sizeof(*nts) == NT_COUNT);
 
     for (size_t i = 0; i < stack.size; ++i) {
         const struct node *const node = &stack.nodes[i];
@@ -339,7 +329,7 @@ static inline bool should_shift_post(
     const struct token *const ahead = &tokens[*token_idx];
 
     if (rule->lhs == NT_Cond || rule->lhs == NT_Elif) {
-        /* dirty hack to parse if-elif-else chains */
+        /* swallow the next "elif" or "else" in order to parse the whole chain */
         if (ahead->tk == TK_ELIF || ahead->tk == TK_ELSE) {
             return true;
         }
