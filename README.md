@@ -45,7 +45,7 @@ The interpreter is really straightforward. It starts from the top of the parse t
   * `// line comment`
   * `/* block comment */`
 
-## Sample Output
+## Sample Output an amazing project.
 You start the interpreter by specifying the file containing the code.
 
 Once the file is opened and mapped into memory, the lexer starts. The tokens will be written to standard output as they appear in the file, in alternating colours (green and yellow), so that you can clearly see where each token starts and ends.
